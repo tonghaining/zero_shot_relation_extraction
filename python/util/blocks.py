@@ -24,6 +24,35 @@ def length(sequence):
     return length, mask
 
 
+def reader(inputs, lengths, output_size, contexts=(None, None), scope=None):
+    """Dynamic bi-LSTM reader; can be conditioned with initial state of other rnn.
+    Args:
+        inputs (tensor): The inputs into the bi-LSTM
+        lengths (tensor): The lengths of the sequences
+        output_size (int): Size of the LSTM state of the reader.
+        context (tensor=None, tensor=None): Tuple of initial (forward, backward) states
+                                  for the LSTM
+        scope (string): The TensorFlow scope for the reader.
+        drop_keep_drop (float=1.0): The keep probability for dropout.
+    Returns:
+        Outputs (tensor): The outputs from the bi-LSTM.
+        States (tensor): The cell states from the bi-LSTM.
+    """
+    with tf.variable_scope(scope or "reader") as varscope:
+        cell_fw = tf.contrib.rnn.LSTMCell(output_size, initializer=tf.contrib.layers.xavier_initializer())
+        cell_bw = tf.contrib.rnn.LSTMCell(output_size, initializer=tf.contrib.layers.xavier_initializer())
+        outputs, states = tf.nn.bidirectional_dynamic_rnn(
+            cell_fw,
+            cell_bw,
+            inputs,
+            sequence_length=lengths,
+            initial_state_fw=contexts[0],
+            initial_state_bw=contexts[1],
+            dtype=tf.float32
+        )
+
+        return outputs, states
+
 
 def biLSTM(inputs, dim, seq_len, name):
     """
@@ -78,7 +107,7 @@ def masked_softmax(scores, mask):
     Input shape: (batch_size, max_seq_length, hidden_dim). 
     mask parameter: Tensor of shape (batch_size, max_seq_length). Such a mask is given by the length() function.
     """
-    numerator = tf.exp(tf.subtract(scores, tf.reduce_max(scores, 1, keep_dims=True))) * mask
+    numerator = tf.exp(tf.subtract(scores, tf.reduce_max(scores, 1, keepdims=True))) * mask
     denominator = tf.reduce_sum(numerator, 1, keep_dims=True)
     weights = tf.div(numerator, denominator)
     return weights

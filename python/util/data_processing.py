@@ -3,7 +3,7 @@ import re
 import random
 import json
 import collections
-import parameters as params
+from . import parameters as params
 import pickle
 
 FIXED_PARAMETERS = params.load_parameters()
@@ -116,7 +116,12 @@ def loadEmbedding_zeros(path, word_indices):
                     break
             
             s = line.split()
-            if s[0] in word_indices:
+            if s[0] in word_indices: # s[0] is the word
+                if len(s) > 301: # there is a exception for "." in glove.text
+                    tail = s[len(s) - 300:]
+                    head = [s[0]]
+                    s = head + tail
+                    # print(head)
                 emb[word_indices[s[0]], :] = np.asarray(s[1:])
 
     return emb

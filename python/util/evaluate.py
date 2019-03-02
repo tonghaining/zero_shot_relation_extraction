@@ -1,5 +1,6 @@
 import csv
-import sys 
+import sys
+import numpy as np
 
 def evaluate_classifier(classifier, eval_set, batch_size):
     """
@@ -41,7 +42,7 @@ def evaluate_classifier_genre(classifier, eval_set, batch_size):
         count[genre] += 1.
 
         if genre != eval_set[i]['genre']:
-            print 'welp!'
+            print('welp!')
 
     accuracy = {k: correct[k]/count[k] for k in correct}
 
@@ -69,7 +70,7 @@ def evaluate_classifier_bylength(classifier, eval_set, batch_size):
         count[genre] += 1.
 
         if genre != eval_set[i]['genre']:
-            print 'welp!'
+            print('welp!')
 
     accuracy = {k: correct[k]/count[k] for k in correct}
 
@@ -139,9 +140,8 @@ def predictions_kaggle(classifier, eval_set, batch_size, name):
 
     #predictions = sorted(predictions, key=lambda x: int(x[0]))
 
-    f = open( name + '_predictions.csv', 'wb')
-    w = csv.writer(f, delimiter = ',')
-    w.writerow(['pairID','gold_label'])
-    for example in predictions:
-        w.writerow(example)
-    f.close()
+    with open(name + '_predictions.csv', 'w') as f:
+        w = csv.writer(f, delimiter=',')
+        w.writerow(['pairID', 'gold_label'])
+        for example in predictions:
+            w.writerow(example)

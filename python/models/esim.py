@@ -34,15 +34,19 @@ class MyModel(object):
         hyp_seq_lengths, mask_hyp = blocks.length(self.hypothesis_x)
 
 
-        ### First biLSTM layer ###
+        ### First cbiLSTM layer ###
 
         premise_in = emb_drop(self.premise_x)
         hypothesis_in = emb_drop(self.hypothesis_x)
 
-        premise_outs, c1 = blocks.biLSTM(premise_in, dim=self.dim, seq_len=prem_seq_lengths, name='premise')
         hypothesis_outs, c2 = blocks.biLSTM(hypothesis_in, dim=self.dim, seq_len=hyp_seq_lengths, name='hypothesis')
+        # calculate premise based on the condition of hypothesis
+        with tf.variable_scope("conditional_first_premise_layer") as fstPremise_scope:
+            premise_outs, c1 = blocks.reader(premise_in, prem_seq_lengths, self.dim, c2, scope=fstPremise_scope)
 
-        premise_bi = tf.concat(premise_outs, axis=2)
+        (premise_out0, premise1) = premise_outs
+        paddings = tf.constant([[0, 0], [0, 0, ], [0, 300]])
+        premise_bi = tf.pad(premise_out0, paddings, "CONSTANT")
         hypothesis_bi = tf.concat(hypothesis_outs, axis=2)
 
         premise_list = tf.unstack(premise_bi, axis=1)
@@ -105,10 +109,13 @@ class MyModel(object):
 
         ### Inference Composition ###
 
-        v1_outs, c3 = blocks.biLSTM(m_a, dim=self.dim, seq_len=prem_seq_lengths, name='v1')
         v2_outs, c4 = blocks.biLSTM(m_b, dim=self.dim, seq_len=hyp_seq_lengths, name='v2')
+        # same to hypothesis premise part, calculate v1 based on v2 during Inference Composition
+        with tf.variable_scope("conditional_inference_composition-v1") as v1_scope:
+            v1_outs, c3 = blocks.reader(m_a, prem_seq_lengths, self.dim, c4, scope=v1_scope)
 
-        v1_bi = tf.concat(v1_outs, axis=2)
+        (v1_out0, v1_out1) = v1_outs
+        v1_bi = tf.pad(v1_out0, paddings, "CONSTANT")
         v2_bi = tf.concat(v2_outs, axis=2)
 
 

@@ -93,6 +93,7 @@ def load_parameters():
         "test_snli": "{}/snli_1.0/snli_1.0_test.jsonl".format(args.datapath),
         "embedding_data_path": "{}/glove.840B.300d.txt".format(args.datapath),
         #"embedding_data_path": "{}/glove.6B.50d.txt".format(args.datapath),
+        "relation_description": "{}/relation_description.jsonl".format(args.datapath),
         "log_path": "{}".format(args.logpath),
         "ckpt_path":  "{}".format(args.ckptpath),
         "embeddings_to_load": args.emb_to_load,
@@ -102,7 +103,7 @@ def load_parameters():
         #"hidden_embedding_dim": 50,
         "seq_length": args.seq_length,
         "keep_rate": args.keep_rate, 
-        "batch_size": 32,
+        "batch_size": 2, # for large data: 32
         "learning_rate": args.learning_rate,
         "emb_train": args.emb_train,
         "alpha": args.alpha,

@@ -43,7 +43,7 @@ test_mismatched = load_nli_data(FIXED_PARAMETERS["test_mismatched"])
 dictpath = os.path.join(FIXED_PARAMETERS["log_path"], modname) + ".p"
 
 if not os.path.isfile(dictpath): 
-    print "No dictionary found!"
+    print("No dictionary found!")
     exit(1)
 
 else:

@@ -66,7 +66,7 @@ class modelClassifier:
         ## Define hyperparameters
         self.learning_rate =  FIXED_PARAMETERS["learning_rate"]
         self.display_epoch_freq = 1
-        self.display_step_freq = 50
+        self.display_step_freq = 2 # for large data = 50
         self.embedding_dim = FIXED_PARAMETERS["word_embedding_dim"]
         self.dim = FIXED_PARAMETERS["hidden_embedding_dim"]
         self.batch_size = FIXED_PARAMETERS["batch_size"]
@@ -161,7 +161,7 @@ class modelClassifier:
                     logger.Log("Step: %i\t Dev-matched acc: %f\t Dev-mismatched acc: %f\t Dev-SNLI acc: %f\t SNLI train acc: %f" %(self.step, dev_acc_mat, dev_acc_mismat, dev_acc_snli, strain_acc))
                     logger.Log("Step: %i\t Dev-matched cost: %f\t Dev-mismatched cost: %f\t Dev-SNLI cost: %f\t SNLI train cost: %f" %(self.step, dev_cost_mat, dev_cost_mismat, dev_cost_snli, strain_cost))
 
-                if self.step % 500 == 0:
+                if self.step % 10 == 0: # for large data = 500
                     self.saver.save(self.sess, ckpt_file)
                     best_test = 100 * (1 - self.best_dev_snli / dev_acc_snli)
                     if best_test > 0.04:
