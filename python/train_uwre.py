@@ -64,6 +64,28 @@ def build_uwre_dictionary(training_datasets):
 
     return word_indices
 
+def uwre_sentences_to_padded_index_sequences(word_indices, datasets):
+    """
+    Annotate datasets with feature vectors. Adding right-sided padding. 
+    """
+    for i, dataset in enumerate(datasets):
+        for example in dataset:
+            for sentence in ['sentence1', 'sentence2']:
+                example[sentence + '_index_sequence'] = np.zeros((FIXED_PARAMETERS["seq_length"]), dtype=np.int32)
+
+                token_sequence = tokenize(example[sentence])
+                padding = FIXED_PARAMETERS["seq_length"] - len(token_sequence)
+
+                for i in range(FIXED_PARAMETERS["seq_length"]):
+                    if i >= len(token_sequence):
+                        index = word_indices[PADDING]
+                    else:
+                        if token_sequence[i] in word_indices:
+                            index = word_indices[token_sequence[i]]
+                        else:
+                            index = word_indices[UNKNOWN]
+                    example[sentence + '_index_sequence'][i] = index
+
 def evaluate_f1(classifier, eval_set, batch_size):
     """
     Function to get accuracy and cost of the model, evaluated on a chosen dataset.
@@ -74,9 +96,11 @@ def evaluate_f1(classifier, eval_set, batch_size):
     genres, hypotheses, _cost = classifier(eval_set)
     full_batch = int(len(eval_set) / batch_size) * batch_size
     y_true = np.zeros((len(eval_set)))
+    y_pred = np.zeros((len(eval_set)))# len(eval_set) != len(hypotheses), one is 446, the other 447  ??!
     for i in range(full_batch):
-        y_true = eval_set[i]['label']
-    f1 = f1_score(y_true, hypotheses, labels=[0,1,2], average='macro')
+        y_true[i] = eval_set[i]['label']
+        y_pred[i] = hypotheses[i]
+    f1 = f1_score(y_true, y_pred, labels=[0,1,2], average='macro')
     return f1
 
 def evaluate_uwre_final(restore, classifier, eval_sets, batch_size):
@@ -128,15 +152,9 @@ def evaluate_uwre_final(restore, classifier, eval_sets, batch_size):
 ######################### LOAD DATA #############################
 
 logger.Log("Loading data")
-training_uwre = load_uwre_data(FIXED_PARAMETERS["training_snli"])
-dev_uwre = load_uwre_data(FIXED_PARAMETERS["dev_snli"])
-test_uwre = load_uwre_data(FIXED_PARAMETERS["test_snli"])
-
-dev_matched = load_nli_data(FIXED_PARAMETERS["dev_matched"])
-dev_mismatched = load_uwre_data(FIXED_PARAMETERS["dev_mismatched"])
-test_matched = load_nli_data(FIXED_PARAMETERS["test_matched"])
-test_mismatched = load_nli_data(FIXED_PARAMETERS["test_mismatched"])
-
+training_uwre = load_uwre_data(FIXED_PARAMETERS["training_uwre"])
+dev_uwre = load_uwre_data(FIXED_PARAMETERS["dev_uwre"])
+test_uwre = load_uwre_data(FIXED_PARAMETERS["test_uwre"])
 
 if 'temp.jsonl' in FIXED_PARAMETERS["test_matched"]:
     # Removing temporary empty file that was created in parameters.py
@@ -149,14 +167,14 @@ if not os.path.isfile(dictpath):
     logger.Log("Building dictionary")
     word_indices = build_uwre_dictionary([training_uwre])
     logger.Log("Padding and indexifying sentences")
-    sentences_to_padded_index_sequences(word_indices, [training_uwre, dev_matched, dev_mismatched, dev_snli])
+    uwre_sentences_to_padded_index_sequences(word_indices, [training_uwre, dev_uwre, test_uwre])
     pickle.dump(word_indices, open(dictpath, "wb"))
 
 else:
     logger.Log("Loading dictionary from %s" % (dictpath))
     word_indices = pickle.load(open(dictpath, "rb"))
     logger.Log("Padding and indexifying sentences")
-    sentences_to_padded_index_sequences(word_indices, [training_uwre, dev_matched, dev_mismatched, dev_snli])
+    uwre_sentences_to_padded_index_sequences(word_indices, [training_uwre, dev_uwre, test_uwre])
 
 logger.Log("Loading embeddings")
 loaded_embeddings = loadEmbedding_rand(FIXED_PARAMETERS["embedding_data_path"], word_indices)
@@ -193,8 +211,9 @@ class modelClassifier:
 
     def get_minibatch(self, dataset, start_index, end_index):
         indices = range(start_index, end_index)
-        premise_vectors = np.vstack([dataset[i]['sentence1_binary_parse_index_sequence'] for i in indices])
-        hypothesis_vectors = np.vstack([dataset[i]['sentence2_binary_parse_index_sequence'] for i in indices])
+        #print(dataset[0])
+        premise_vectors = np.vstack([dataset[i]['sentence1_index_sequence'] for i in indices])
+        hypothesis_vectors = np.vstack([dataset[i]['sentence2_index_sequence'] for i in indices])
         genres = [dataset[i]['genre'] for i in indices]
         labels = [dataset[i]['label'] for i in indices]
         return premise_vectors, hypothesis_vectors, labels, genres
@@ -334,8 +353,8 @@ load the best checkpoint and get accuracy on the test set. Default setting is to
 test = params.train_or_test()
 
 # While test-set isn't released, use dev-sets for testing
-test_matched = dev_matched
-test_mismatched = dev_mismatched
+test_matched = test_uwre
+test_mismatched = dev_uwre
 
 
 if test == False:

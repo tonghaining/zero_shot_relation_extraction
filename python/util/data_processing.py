@@ -148,7 +148,11 @@ def loadEmbedding_rand(path, word_indices):
             
             s = line.split()
             if s[0] in word_indices:
-                emb[word_indices[s[0]], :] = np.asarray(s[1:])
-
+                if len(s) > 301:
+                    tail = s[len(s)-300:]                
+                    head = [s[0]]
+                    s = head + tail
+                    # print(head)
+                emb[word_indices[s[0]], :] = np.asarray(s[1:]) 
     return emb
 
