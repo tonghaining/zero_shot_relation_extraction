@@ -30,8 +30,8 @@ logger.Log("FIXED_PARAMETERS\n %s" % FIXED_PARAMETERS)
 
 def load_uwre_data(path):
     """
-    Load MultiNLI or SNLI data.
-    If the "snli" parameter is set to True, a genre label of snli will be assigned to the data. 
+    Load UWRE data.
+    "uwre" is set to "genre". 
     """
     data = []
     with open(path) as f:
@@ -55,7 +55,6 @@ def build_uwre_dictionary(training_datasets):
         for example in dataset:
             word_counter.update(tokenize(example['sentence1']))
             word_counter.update(tokenize(example['sentence2']))
-        
     vocabulary = set([word for word in word_counter])
     vocabulary = list(vocabulary)
     vocabulary = [PADDING, UNKNOWN] + vocabulary
@@ -184,7 +183,7 @@ class modelClassifier:
         ## Define hyperparameters
         self.learning_rate =  FIXED_PARAMETERS["learning_rate"]
         self.display_epoch_freq = 1
-        self.display_step_freq = 2
+        self.display_step_freq = 4
         self.embedding_dim = FIXED_PARAMETERS["word_embedding_dim"]
         self.dim = FIXED_PARAMETERS["hidden_embedding_dim"]
         self.batch_size = FIXED_PARAMETERS["batch_size"]
@@ -284,7 +283,7 @@ class modelClassifier:
                     logger.Log("Step: %i\t Dev-UWRE acc: %f\t UWRE train acc: %f" %(self.step, dev_acc_uwre, strain_acc))
                     logger.Log("Step: %i\t Dev-UWRE cost: %f\t UWRE train cost: %f" %(self.step, dev_cost_uwre, strain_cost))
 
-                if self.step % 500 == 0:
+                if self.step % 4 == 0:
                     self.saver.save(self.sess, ckpt_file)
                     best_test = 100 * (1 - self.best_dev_uwre / dev_acc_uwre)
                     if best_test > 0.04:
