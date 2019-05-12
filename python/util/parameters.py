@@ -14,7 +14,7 @@ import json
 
 parser = argparse.ArgumentParser()
 
-models = ['esim','cbow', 'bilstm', 'lstm']
+models = ['esim','cbow', 'bilstm', 'lstm', 'esim_plus']
 def types(s):
     options = [mod for mod in models if s in models]
     if len(options) == 1:
@@ -39,6 +39,7 @@ parser.add_argument("--logpath", type=str, default="../logs")
 parser.add_argument("--emb_to_load", type=int, default=None, help="Number of embeddings to load. If None, all embeddings are loaded.")
 parser.add_argument("--learning_rate", type=float, default=0.0004, help="Learning rate for model")
 parser.add_argument("--keep_rate", type=float, default=0.5, help="Keep rate for dropout in the model")
+parser.add_argument("--description_num", type=int, default=16)
 parser.add_argument("--seq_length", type=int, default=50, help="Max sequence length")
 parser.add_argument("--emb_train", action='store_true', help="Call if you want to make your word embeddings trainable.")
 
@@ -99,18 +100,16 @@ def load_parameters():
         "test_uwre": "{}/ten_fold_uwre/test_fold9.json".format(args.datapath),
 
         "embedding_data_path": "{}/glove.840B.300d.txt".format(args.datapath),
-        #"embedding_data_path": "{}/glove.6B.50d.txt".format(args.datapath),
         "relation_description": "{}/relation_description.jsonl".format(args.datapath),
         "log_path": "{}".format(args.logpath),
         "ckpt_path":  "{}".format(args.ckptpath),
         "embeddings_to_load": args.emb_to_load,
         "word_embedding_dim": 300,
         "hidden_embedding_dim": 300,
-        #"word_embedding_dim": 50,
-        #"hidden_embedding_dim": 50,
         "seq_length": args.seq_length,
         "keep_rate": args.keep_rate, 
-        "batch_size": 32, # for large data: 32
+        "description_num": format(args.description_num), # default: 16
+        "batch_size": 2, # for large data: 32
         "learning_rate": args.learning_rate,
         "emb_train": args.emb_train,
         "alpha": args.alpha,
