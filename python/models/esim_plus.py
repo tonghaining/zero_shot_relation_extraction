@@ -1,15 +1,18 @@
+import tensorflow as tf
+from util import blocks
+
 # models/esim_modify
 class MyModel(object):
-    def __init__(self, seq_length, emb_dim, hidden_dim, embeddings, emb_train, total_relations):
+    def __init__(self, seq_length, emb_dim, hidden_dim, embeddings, emb_train, batch_size):
         ## Define hyperparameters
         self.embedding_dim = emb_dim
         self.dim = hidden_dim
         self.sequence_length = seq_length 
-        self.n = total_relations
+        self.n = batch_size
 
         ## Define the placeholders
-        self.premise_x = tf.placeholder(tf.int32, [None, self.sequence_length]) # change from (32,50) to (32*n,50)
-        self.hypothesis_x = tf.placeholder(tf.int32, [None, self.sequence_length])# change from (32,50) to (32*n,50)
+        self.premise_x = tf.placeholder(tf.int32, [None, self.sequence_length]) 
+        self.hypothesis_x = tf.placeholder(tf.int32, [None, self.sequence_length])
         self.y = tf.placeholder(tf.int32, [None])
         self.keep_rate_ph = tf.placeholder(tf.float32, [])
         
@@ -29,26 +32,26 @@ class MyModel(object):
             return emb_drop
 
         # Get lengths of unpadded sentences
-        prem_seq_lengths, mask_prem = length(self.premise_x)
-        hyp_seq_lengths, mask_hyp = length(self.hypothesis_x)
+        prem_seq_lengths, mask_prem = blocks.length(self.premise_x)
+        hyp_seq_lengths, mask_hyp = blocks.length(self.hypothesis_x)
 
 
         ### First cbiLSTM layer ###
         premise_in = emb_drop(self.premise_x)
-        hypothesis_in = emb_drop(self.hypothesis_x)# change from hypothesis_x[:,0,:] to hypothesis_x, [32 * 50] -> [(32 * n )* 50]
+        hypothesis_in = emb_drop(self.hypothesis_x)
 
-        hypothesis_outs, c2 = biLSTM(hypothesis_in, dim=self.dim, seq_len=hyp_seq_lengths, name='hypothesis')
+        hypothesis_outs, c2 = blocks.biLSTM(hypothesis_in, dim=self.dim, seq_len=hyp_seq_lengths, name='hypothesis')
         # calculate premise based on the condition of hypothesis
-        with tf.variable_scope("conditional_first_premise_layer") as fstPremise_scope: # use average
-            premise_outs, c1 = reader(premise_in, prem_seq_lengths, self.dim, c2, scope=fstPremise_scope)
+        with tf.variable_scope("conditional_first_premise_layer") as fstPremise_scope: 
+            premise_outs, c1 = blocks.reader(premise_in, prem_seq_lengths, self.dim, c2, scope=fstPremise_scope)
 
-#         (premise_out0, premise1) = premise_outs
-#         paddings = tf.constant([[0, 0], [0, 0, ], [0, 300]])
-#         premise_bi = tf.pad(premise_out0, paddings, "CONSTANT")
-        premise_bi = tf.concat(premise_outs, axis=2) # (?, 50, 600)
-        hypothesis_bi = tf.concat(hypothesis_outs, axis=2) # (?, 50, 600)
+        (premise_out0, premise1) = premise_outs
+        paddings = tf.constant([[0, 0], [0, 0, ], [0, 300]])
+        premise_bi = tf.pad(premise_out0, paddings, "CONSTANT")
+        # premise_bi = tf.concat(premise_outs, axis=2) 
+        hypothesis_bi = tf.concat(hypothesis_outs, axis=2) 
 
-        premise_list = tf.unstack(premise_bi, axis=1) # premise_list[0] -> (?, 600)
+        premise_list = tf.unstack(premise_bi, axis=1) 
         hypothesis_list = tf.unstack(hypothesis_bi, axis=1)
 
 
@@ -66,7 +69,7 @@ class MyModel(object):
                 scores_i_list.append(score_ij)
             
             scores_i = tf.stack(scores_i_list, axis=1)
-            alpha_i = masked_softmax(scores_i, mask_hyp)
+            alpha_i = blocks.masked_softmax(scores_i, mask_hyp)
             a_tilde_i = tf.reduce_sum(tf.multiply(alpha_i, hypothesis_bi), 1)
             premise_attn.append(a_tilde_i)
             
@@ -80,7 +83,7 @@ class MyModel(object):
         betas = []
         for j in range(self.sequence_length):
             scores_j = scores_list[j]
-            beta_j = masked_softmax(scores_j, mask_prem)
+            beta_j = blocks.masked_softmax(scores_j, mask_prem)
             b_tilde_j = tf.reduce_sum(tf.multiply(beta_j, premise_bi), 1)
             hypothesis_attn.append(b_tilde_j)
 
@@ -108,14 +111,14 @@ class MyModel(object):
 
         ### Inference Composition ###
 
-        v2_outs, c4 = biLSTM(m_b, dim=self.dim, seq_len=hyp_seq_lengths, name='v2') # hypothesis
+        v2_outs, c4 = blocks.biLSTM(m_b, dim=self.dim, seq_len=hyp_seq_lengths, name='v2') # hypothesis
         # same to hypothesis premise part, calculate v1 based on v2 during Inference Composition
         with tf.variable_scope("conditional_inference_composition-v1") as v1_scope:
-            v1_outs, c3 = reader(m_a, prem_seq_lengths, self.dim, c4, scope=v1_scope) # premise
+            v1_outs, c3 = blocks.reader(m_a, prem_seq_lengths, self.dim, c4, scope=v1_scope) # premise
 
-#         (v1_out0, v1_out1) = v1_outs # premise
-#         v1_bi = tf.pad(v1_out0, paddings, "CONSTANT")
-        v1_bi = tf.concat(v1_outs, axis=2) # (?, 50, 600)
+        (v1_out0, v1_out1) = v1_outs # premise
+        v1_bi = tf.pad(v1_out0, paddings, "CONSTANT")
+#        v1_bi = tf.concat(v1_outs, axis=2) # (?, 50, 600)
         v2_bi = tf.concat(v2_outs, axis=2) # (?, 50, 600)
 
 
@@ -129,32 +132,38 @@ class MyModel(object):
         v_1_max = tf.reduce_max(v1_bi, 1) # 整列求和 (?, 600)
         v_2_max = tf.reduce_max(v2_bi, 1) # 整列求和 (?, 600)
 
-        v = tf.concat([v_1_ave, v_2_ave, v_1_max, v_2_max], 1) # (?, 2400)
-        
+                
+        v_con = tf.concat([v_1_ave, v_2_ave, v_1_max, v_2_max], 1)
+        v_fold = tf.reshape(v_con, [self.n, -1, self.dim * 8])
+        v = tf.reduce_mean(v_fold, 1)
 
         # MLP layer
-        h_mlp = tf.nn.tanh(tf.matmul(v, self.W_mlp) + self.b_mlp) # (?, 300)
+        h_mlp = tf.nn.tanh(tf.matmul(v, self.W_mlp) + self.b_mlp) 
 
         # Dropout applied to classifier
-        h_drop = tf.nn.dropout(h_mlp, self.keep_rate_ph) # (?, 300)
+        h_drop = tf.nn.dropout(h_mlp, self.keep_rate_ph) 
 
         # Get prediction
-        self.logits = tf.matmul(h_drop, self.W_cl) + self.b_cl # (672, 3)
+        self.logits = tf.matmul(h_drop, self.W_cl) + self.b_cl
+        # using 0 replace nans in logits
+        # self.logits = tf.where(tf.is_nan(self.logits_nan), tf.zeros_like(self.logits_nan), self.logits_nan)
         
         # added, remove the results of 0s, majority vote for each hypothesis
-        logit_list = tf.split(self.logits, num_or_size_splits = self.n, axis = 0)
-        hypothesis_list = tf.split(self.hypothesis_x, num_or_size_splits = self.n, axis = 0)
-        ave = []
-        for i, logit in enumerate(logit_list):
-          hyp = hypothesis_list[i]
-          hyp_sum = tf.reduce_sum(tf.abs(hyp),0)
-          mask = tf.greater(hyp_sum, 0)
-          non_zero_logit = tf.boolean_mask(logit, mask) # 非0的都剩下, 接下来vote? 怎么vote,没法vote吧,不然下一步输入就不是三维的了,,干脆每列求和好了,这样entailment, contradict 和neutral都有平均值了
-          hy_ave = tf.reduce_mean(non_zero_logit, 0)
-          ave.append(hy_ave)
-        self.logits_ave = tf.stack(ave) # (32,3)
-        
+#        logit_list = tf.split(self.logits, num_or_size_splits = self.n, axis = 0)
+#        hypothesis_list = tf.split(self.hypothesis_x, num_or_size_splits = self.n, axis = 0)
+#        ave = []
+#        for i, logit in enumerate(logit_list):
+#          hyp = hypothesis_list[i]
+#          hyp_sum = tf.reduce_sum(tf.abs(hyp),0)
+#          mask = tf.greater(hyp_sum, 0)
+#          non_zero_logit = tf.boolean_mask(logit, mask) # 非0的都剩下, 接下来vote? 怎么vote,没法vote吧,不然下一步输入就不是三维的了,,干脆每列求和好了,这样entailment, contradict 和neutral都有平均值了
+#          hy_ave = tf.reduce_mean(non_zero_logit, 0)
+#          ave.append(hy_ave)
+#        self.logits_ave = tf.stack(ave) # (32,3)
+        # logits_metr = tf.reshape(self.logits, [self.n, -1, 3])
+        # self.logits_ave = tf.reduce_mean(logits_metr, 1)     
+        # self.logits_ave = tf.reduce_max(logits_metr, 1)     
         
 
         # Define the cost function
-        self.total_cost = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y, logits=self.logits_ave)) # 一个数字
+        self.total_cost = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y, logits=self.logits)) # 一个数字

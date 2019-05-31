@@ -11,6 +11,8 @@ import util.parameters as params
 from util.data_processing import *
 from util.evaluate import *
 from sklearn.metrics import f1_score
+from itertools import repeat
+
 
 FIXED_PARAMETERS = params.load_parameters()
 modname = FIXED_PARAMETERS["model_name"]
@@ -27,6 +29,8 @@ MyModel = getattr(module, 'MyModel')
 logger.Log("FIXED_PARAMETERS\n %s" % FIXED_PARAMETERS)
 
 #################### OVER WRITEN FUNCTIONS ######################
+
+description_num = int(FIXED_PARAMETERS["description_num"])
 
 def load_uwre_data(path):
     """
@@ -88,6 +92,9 @@ def uwre_sentences_to_padded_index_sequences(word_indices, datasets):
             example['descriptions_index_sequence'] = np.zeros((len(example['descriptions']), FIXED_PARAMETERS["seq_length"]), dtype=np.int32)
             for j, description in enumerate(example['descriptions']):
 
+                
+                if j >= description_num:
+                    continue
                 token_sequence = tokenize(description)
                 padding = FIXED_PARAMETERS["seq_length"] - len(token_sequence)
 
@@ -153,9 +160,9 @@ def evaluate_uwre_final(restore, classifier, eval_sets, batch_size):
 ######################### LOAD DATA #############################
 
 logger.Log("Loading data")
-training_uwre = load_uwre_data(FIXED_PARAMETERS["training_uwre"])
-dev_uwre = load_uwre_data(FIXED_PARAMETERS["dev_uwre"])
-test_uwre = load_uwre_data(FIXED_PARAMETERS["test_uwre"])
+training_uwre = load_uwre_data(FIXED_PARAMETERS["training_multi"])
+dev_uwre = load_uwre_data(FIXED_PARAMETERS["dev_multi"])
+test_uwre = load_uwre_data(FIXED_PARAMETERS["test_multi"])
 
 if 'temp.jsonl' in FIXED_PARAMETERS["test_matched"]:
     # Removing temporary empty file that was created in parameters.py
@@ -185,7 +192,7 @@ class modelClassifier:
         ## Define hyperparameters
         self.learning_rate =  FIXED_PARAMETERS["learning_rate"]
         self.display_epoch_freq = 1
-        self.display_step_freq = 4
+        self.display_step_freq = 50
         self.embedding_dim = FIXED_PARAMETERS["word_embedding_dim"]
         self.dim = FIXED_PARAMETERS["hidden_embedding_dim"]
         self.batch_size = FIXED_PARAMETERS["batch_size"]
@@ -195,7 +202,7 @@ class modelClassifier:
         self.alpha = FIXED_PARAMETERS["alpha"]
 
         logger.Log("Building model from %s.py" %(model))
-        self.model = MyModel(seq_length=self.sequence_length, emb_dim=self.embedding_dim,  hidden_dim=self.dim, embeddings=loaded_embeddings, emb_train=self.emb_train)
+        self.model = MyModel(seq_length=self.sequence_length, emb_dim=self.embedding_dim,  hidden_dim=self.dim, embeddings=loaded_embeddings, emb_train=self.emb_train, batch_size=self.batch_size)
 
         # Perform gradient descent with Adam
         self.optimizer = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999).minimize(self.model.total_cost)
@@ -209,18 +216,23 @@ class modelClassifier:
         self.sess = None
         self.saver = tf.train.Saver()
 
-def get_minibatch(dataset, start_index, end_index):
+
+    def get_minibatch(self, dataset, start_index, end_index):
         indices = range(start_index, end_index)
         premise_list = [dataset[i]['sentence_index_sequence'] for i in indices]
         hypothesis_list = [dataset[i]['descriptions_index_sequence'] for i in indices]
-        hypothesis_list = [hy[:FIXED_PARAMETERS["description_num"]] for hy in hypothesis_list] # 16 * batch_size = 32
-        largest_n = num_descriptions
-        padded_hypothesis = [np.pad(hy,((0,largest_n-len(hy)),(0,0)),'constant') for hy in hypothesis_list]
+
+        largest_n = description_num
+
+        hypothesis_list = [hy[:largest_n] for hy in hypothesis_list] # 16 * batch_size = 32
+        # padded_hypothesis = [np.pad(hy,((0,largest_n-len(hy)),(0,0)),'constant') for hy in hypothesis_list]
+        padded_hypothesis = [np.pad(hy,((0,largest_n-len(hy)),(0,0)),'reflect') for hy in hypothesis_list]
         padded_premise = []
         for i in range(len(premise_list)):
           current_n = len(hypothesis_list[i])
           premise_c = np.tile(premise_list[i], (current_n, 1))
-          premise = np.pad(premise_c,((0,largest_n - current_n),(0,0)),'constant')
+          # premise = np.pad(premise_c,((0,largest_n - current_n),(0,0)),'constant')
+          premise = np.pad(premise_c,((0,largest_n - current_n),(0,0)),'reflect')
           padded_premise.append(premise)
         vstack_premise = np.vstack(padded_premise)
         vstack_hypothesis = np.vstack(padded_hypothesis)
@@ -228,11 +240,13 @@ def get_minibatch(dataset, start_index, end_index):
         hypothesis_vectors = np.reshape(vstack_hypothesis, (len(premise_list) * largest_n, len(premise_list[0])))
         genres = [dataset[i]['genre'] for i in indices]
         labels = [dataset[i]['label'] for i in indices]
+        
+#        genres = [x for item in ini_genres for x in repeat(item, self.batch_size)]
+#        labels = [x for item in ini_labels for x in repeat(item, self.batch_size)]
         return premise_vectors, hypothesis_vectors, labels, genres
 
 
     def train(self, train_uwre, dev_uwre, test_uwre):
-        # def train(self, train_uwre, dev_mat, dev_mismat, dev_uwre):
         self.sess = tf.Session()
         self.sess.run(self.init)
 
@@ -277,26 +291,29 @@ def get_minibatch(dataset, start_index, end_index):
                 
                 # Run the optimizer to take a gradient step, and also fetch the value of the 
                 # cost function for logging
+                
                 feed_dict = {self.model.premise_x: minibatch_premise_vectors,
                                 self.model.hypothesis_x: minibatch_hypothesis_vectors,
                                 self.model.y: minibatch_labels, 
                                 self.model.keep_rate_ph: self.keep_rate}
                 _, c = self.sess.run([self.optimizer, self.model.total_cost], feed_dict)
-
+               
+ 
                 # Since a single epoch can take a  ages for larger models (ESIM),
                 #  we'll print accuracy every 50 steps
                 if self.step % self.display_step_freq == 0:
-                    test_f1 = evaluate_f1(self.classify, test_uwre, self.batch_size)
-                    test_acc, test_cost = evaluate_classifier(self.classify, test_uwre, self.batch_size)
+                    # test_f1 = evaluate_f1(self.classify, test_uwre, self.batch_size)
+                    # test_acc, test_cost = evaluate_classifier(self.classify, test_uwre, self.batch_size)
                     dev_f1 = evaluate_f1(self.classify, dev_uwre, self.batch_size)
                     dev_acc_uwre, dev_cost_uwre = evaluate_classifier(self.classify, dev_uwre, self.batch_size)
                     strain_acc, strain_cost = evaluate_classifier(self.classify, train_uwre[0:5000], self.batch_size)
 
-                    logger.Log("Step: %i\t Test f1-score: %f\t Dev f1-score: %f" %(self.step, test_f1, dev_f1))
+                    # logger.Log("Step: %i\t Test f1-score: %f\t Dev f1-score: %f" %(self.step, test_f1, dev_f1))
+                    logger.Log("Step: %i\t Dev f1-score: %f" %(self.step, dev_f1))
                     logger.Log("Step: %i\t Dev-UWRE acc: %f\t UWRE train acc: %f" %(self.step, dev_acc_uwre, strain_acc))
                     logger.Log("Step: %i\t Dev-UWRE cost: %f\t UWRE train cost: %f" %(self.step, dev_cost_uwre, strain_cost))
 
-                if self.step % 4 == 0:
+                if self.step % 500 == 0:
                     self.saver.save(self.sess, ckpt_file)
                     best_test = 100 * (1 - self.best_dev_uwre / dev_acc_uwre)
                     if best_test > 0.04:
