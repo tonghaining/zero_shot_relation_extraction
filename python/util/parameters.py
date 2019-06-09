@@ -93,9 +93,9 @@ def load_parameters():
         "dev_snli": "{}/snli_1.0/snli_1.0_dev.jsonl".format(args.datapath),
         "test_snli": "{}/snli_1.0/snli_1.0_test.jsonl".format(args.datapath),
         
-        "training_multi": "{}/ten_fold_multi_uwre/fold1/train_fold1.json".format(args.datapath),
+        "training_multi": "{}/ten_fold_multi_uwre/fold8/train_fold8.json".format(args.datapath),
         "dev_multi": "{}/ten_fold_multi_uwre/fold0/dev_fold0.json".format(args.datapath),
-        "test_multi": "{}/ten_fold_multi_uwre/fold1/test_fold1.json".format(args.datapath),
+        "test_multi": "{}/ten_fold_multi_uwre/fold8/test_fold8.json".format(args.datapath),
         
         "training_uwre": "{}/ten_fold_uwre/train_fold9.json".format(args.datapath),
         "dev_uwre": "{}/ten_fold_uwre/dev_fold9.json".format(args.datapath),
@@ -111,8 +111,8 @@ def load_parameters():
         "seq_length": args.seq_length,
         "keep_rate": args.keep_rate, 
         # "description_num": format(args.description_num), # default: 16
-        "description_num": 8, # default: 16
-        "batch_size": 4, # for large data: 32
+        "description_num": 4, # default: 16
+        "batch_size": 8, # for large data: 32
         "learning_rate": args.learning_rate,
         "emb_train": args.emb_train,
         "alpha": args.alpha,

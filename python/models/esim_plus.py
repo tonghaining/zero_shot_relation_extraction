@@ -136,6 +136,14 @@ class MyModel(object):
         v_con = tf.concat([v_1_ave, v_2_ave, v_1_max, v_2_max], 1)
         v_fold = tf.reshape(v_con, [self.n, -1, self.dim * 8])
         v = tf.reduce_mean(v_fold, 1)
+        # Add batch normalization
+#        v_bn = tf.reduce_mean(v_fold, 1)
+#        batch_mean, batch_var = tf.nn.moments(v_bn,[0])
+#        self.scale = tf.Variable(tf.ones([2400]))
+#        self.beta = tf.Variable(tf.zeros([2400]))
+#        # Small epsilon value for the BN transform
+#        epsilon = 1e-3
+#        v = tf.nn.batch_normalization(v_bn,batch_mean,batch_var,self.beta,self.scale,epsilon)
 
         # MLP layer
         h_mlp = tf.nn.tanh(tf.matmul(v, self.W_mlp) + self.b_mlp) 
