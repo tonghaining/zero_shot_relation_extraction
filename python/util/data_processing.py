@@ -18,10 +18,10 @@ LABEL_MAP = {
 PADDING = "<PAD>"
 UNKNOWN = "<UNK>"
 
-def load_nli_data(path, snli=False):
+def load_uwre_data(path):
     """
-    Load MultiNLI or SNLI data.
-    If the "snli" parameter is set to True, a genre label of snli will be assigned to the data. 
+    Load UWRE data.
+    "uwre" is set to "genre". 
     """
     data = []
     with open(path) as f:
@@ -30,30 +30,8 @@ def load_nli_data(path, snli=False):
             if loaded_example["gold_label"] not in LABEL_MAP:
                 continue
             loaded_example["label"] = LABEL_MAP[loaded_example["gold_label"]]
-            if snli:
-                loaded_example["genre"] = "snli"
+            loaded_example["genre"] = "uwre"
             data.append(loaded_example)
-        random.seed(1)
-        random.shuffle(data)
-    return data
-
-def load_nli_data_genre(path, genre, snli=True):
-    """
-    Load a specific genre's examples from MultiNLI, or load SNLI data and assign a "snli" genre to the examples.
-    If the "snli" parameter is set to True, a genre label of snli will be assigned to the data. If set to true, it will overwrite the genre label for MultiNLI data.
-    """
-    data = []
-    j = 0
-    with open(path) as f:
-        for line in f:
-            loaded_example = json.loads(line)
-            if loaded_example["gold_label"] not in LABEL_MAP:
-                continue
-            loaded_example["label"] = LABEL_MAP[loaded_example["gold_label"]]
-            if snli:
-                loaded_example["genre"] = "snli"
-            if loaded_example["genre"] == genre:
-                data.append(loaded_example)
         random.seed(1)
         random.shuffle(data)
     return data
@@ -62,45 +40,68 @@ def tokenize(string):
     string = re.sub(r'\(|\)', '', string)
     return string.split()
 
-def build_dictionary(training_datasets):
+def build_uwre_dictionary(training_datasets, relation_descriptions):
     """
     Extract vocabulary and build dictionary.
-    """  
+    """
     word_counter = collections.Counter()
     for i, dataset in enumerate(training_datasets):
         for example in dataset:
-            word_counter.update(tokenize(example['sentence1_binary_parse']))
-            word_counter.update(tokenize(example['sentence2_binary_parse']))
-        
+            word_counter.update(tokenize(example['sentence']))
+    
+    for relation in relation_descriptions:
+        for description in relation_descriptions[relation]:
+            word_counter.update(tokenize(description))
+    
     vocabulary = set([word for word in word_counter])
     vocabulary = list(vocabulary)
     vocabulary = [PADDING, UNKNOWN] + vocabulary
-        
+
     word_indices = dict(zip(vocabulary, range(len(vocabulary))))
 
     return word_indices
 
-def sentences_to_padded_index_sequences(word_indices, datasets):
+def uwre_sentences_to_padded_index_sequences(word_indices, datasets):
     """
-    Annotate datasets with feature vectors. Adding right-sided padding. 
+    Annotate datasets with feature vectors. Adding right-sided padding.
     """
     for i, dataset in enumerate(datasets):
         for example in dataset:
-            for sentence in ['sentence1_binary_parse', 'sentence2_binary_parse']:
-                example[sentence + '_index_sequence'] = np.zeros((FIXED_PARAMETERS["seq_length"]), dtype=np.int32)
+            example['sentence' + '_index_sequence'] = np.zeros((FIXED_PARAMETERS["seq_length"]), dtype=np.int32)
 
-                token_sequence = tokenize(example[sentence])
-                padding = FIXED_PARAMETERS["seq_length"] - len(token_sequence)
+            token_sequence = tokenize(example['sentence'])
+            padding = FIXED_PARAMETERS["seq_length"] - len(token_sequence)
 
-                for i in range(FIXED_PARAMETERS["seq_length"]):
-                    if i >= len(token_sequence):
-                        index = word_indices[PADDING]
+            for i in range(FIXED_PARAMETERS["seq_length"]):
+                if i >= len(token_sequence):
+                    index = word_indices[PADDING]
+                else:
+                    if token_sequence[i] in word_indices:
+                        index = word_indices[token_sequence[i]]
                     else:
-                        if token_sequence[i] in word_indices:
-                            index = word_indices[token_sequence[i]]
-                        else:
-                            index = word_indices[UNKNOWN]
-                    example[sentence + '_index_sequence'][i] = index
+                        index = word_indices[UNKNOWN]
+                example['sentence' + '_index_sequence'][i] = index
+
+def descriptions_to_padded_index_sequences(word_indices, relation_descriptions):
+    padded_relation_descriptions = {}
+
+    for relation in relation_descriptions:
+        descriptions = np.zeros((len(relation_descriptions[relation]), FIXED_PARAMETERS["seq_length"]), dtype=np.int32)
+        for j,description in enumerate(relation_descriptions[relation]):
+            token_sequence = tokenize(description)
+            padding = FIXED_PARAMETERS["seq_length"] - len(token_sequence)
+
+            for i in range(FIXED_PARAMETERS["seq_length"]):
+                if i >= len(token_sequence):
+                    index = word_indices[PADDING]
+                else:
+                    if token_sequence[i] in word_indices:
+                        index = word_indices[token_sequence[i]]
+                    else:
+                        index = word_indices[unknown]
+                descriptions[j][i] = index
+        padded_relation_descriptions[relation] = descriptions
+    return padded_relation_descriptions
 
 
 def loadEmbedding_zeros(path, word_indices):

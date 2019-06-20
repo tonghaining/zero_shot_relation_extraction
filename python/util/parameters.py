@@ -14,7 +14,7 @@ import json
 
 parser = argparse.ArgumentParser()
 
-models = ['esim','cbow', 'bilstm', 'lstm', 'esim_plus', 'conc_esim', 'mean_esim', 'max_esim']
+models = ['esim', 'mean_esim', 'max_esim', 'attention_esim']
 def types(s):
     options = [mod for mod in models if s in models]
     if len(options) == 1:
@@ -39,7 +39,7 @@ parser.add_argument("--logpath", type=str, default="../logs")
 parser.add_argument("--emb_to_load", type=int, default=None, help="Number of embeddings to load. If None, all embeddings are loaded.")
 parser.add_argument("--learning_rate", type=float, default=0.0004, help="Learning rate for model")
 parser.add_argument("--keep_rate", type=float, default=0.5, help="Keep rate for dropout in the model")
-# parser.add_argument("--description_num", type=int, default=4)
+parser.add_argument("--description_num", type=int, default=5)
 parser.add_argument("--seq_length", type=int, default=50, help="Max sequence length")
 parser.add_argument("--emb_train", action='store_true', help="Call if you want to make your word embeddings trainable.")
 
@@ -69,8 +69,8 @@ else:
 test_matched = "{}/multinli_0.9/multinli_0.9_test_matched.jsonl".format(args.datapath)
 
 if os.path.isfile(test_matched):
-    test_matched = "{}/multinli_0.9/multinli_0.9_dev_matched.jsonl".format(args.datapath) #"{}/multinli_0.9/multinli_0.9_test_matched.jsonl".format(args.datapath)
-    test_mismatched = "{}/multinli_0.9/multinli_0.9_dev_mismatched.jsonl".format(args.datapath) #"{}/multinli_0.9/multinli_0.9_test_mismatched.jsonl".format(args.datapath)
+    test_matched = "{}/test_matched.jsonl".format(args.datapath)
+    test_mismatched = "{}/test_mismatched.jsonl".format(args.datapath)
     test_path = "{}".format(args.datapath)
 else:
     test_path = "{}".format(args.datapath)
@@ -84,25 +84,15 @@ def load_parameters():
     FIXED_PARAMETERS = {
         "model_type": args.model_type,
         "model_name": args.model_name,
-        "training_mnli": "{}/multinli_0.9/multinli_0.9_train.jsonl".format(args.datapath),
-        "dev_matched": "{}/multinli_0.9/multinli_0.9_dev_matched.jsonl".format(args.datapath),
-        "dev_mismatched": "{}/multinli_0.9/multinli_0.9_dev_mismatched.jsonl".format(args.datapath),
         "test_matched": test_matched,
         "test_mismatched": test_mismatched,
-        "training_snli": "{}/snli_1.0/snli_1.0_train.jsonl".format(args.datapath),
-        "dev_snli": "{}/snli_1.0/snli_1.0_dev.jsonl".format(args.datapath),
-        "test_snli": "{}/snli_1.0/snli_1.0_test.jsonl".format(args.datapath),
-        
-        "training_multi": "{}/ten_fold_multi_uwre/fold8/train_fold8.json".format(args.datapath),
-        "dev_multi": "{}/ten_fold_multi_uwre/fold0/dev_fold0.json".format(args.datapath),
-        "test_multi": "{}/ten_fold_multi_uwre/fold8/test_fold8.json".format(args.datapath),
-        
-        "training_uwre": "{}/ten_fold_uwre/train_fold9.json".format(args.datapath),
-        "dev_uwre": "{}/ten_fold_uwre/dev_fold9.json".format(args.datapath),
-        "test_uwre": "{}/ten_fold_uwre/test_fold9.json".format(args.datapath),
+                
+        "training_uwre": "{}/uwre/train.0".format(args.datapath),
+        "dev_uwre": "{}/uwre/dev.0".format(args.datapath),
+        "test_uwre": "{}/uwre/test.0".format(args.datapath),
 
         "embedding_data_path": "{}/glove.840B.300d.txt".format(args.datapath),
-        "relation_description": "{}/relation_description.jsonl".format(args.datapath),
+        "relation_description": "{}/extended_relation_descriptions.json".format(args.datapath),
         "log_path": "{}".format(args.logpath),
         "ckpt_path":  "{}".format(args.ckptpath),
         "embeddings_to_load": args.emb_to_load,
@@ -110,9 +100,9 @@ def load_parameters():
         "hidden_embedding_dim": 300,
         "seq_length": args.seq_length,
         "keep_rate": args.keep_rate, 
-        # "description_num": format(args.description_num), # default: 16
-        "description_num": 4, # default: 16
-        "batch_size": 8, # for large data: 32
+        "description_num": format(args.description_num), # 1,5,10,15
+        # "description_num": 4
+        "batch_size": 32, # 16 or 32
         "learning_rate": args.learning_rate,
         "emb_train": args.emb_train,
         "alpha": args.alpha,
