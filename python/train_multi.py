@@ -79,10 +79,8 @@ class modelClassifier:
         self.sequence_length = FIXED_PARAMETERS["seq_length"]
         self.alpha = FIXED_PARAMETERS["alpha"]
 
-        global loaded_embeddings
         logger.Log("Building model from %s.py" %(model))
         self.model = MyModel(seq_length=self.sequence_length, emb_dim=self.embedding_dim,  hidden_dim=self.dim, embeddings=loaded_embeddings, emb_train=self.emb_train, batch_size=self.batch_size)
-        loaded_embeddings = None
 
         # Perform gradient descent with Adam
         self.optimizer = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999).minimize(self.model.total_cost)
@@ -213,7 +211,7 @@ class modelClassifier:
             # Early stopping
             progress = 1000 * (sum(self.last_train_acc)/(5 * min(self.last_train_acc)) - 1)
 
-            if (progress < 0.1) or (self.step > self.best_step + 30000):
+            if (progress < 0.1) or (self.step > self.best_step + 10000):# pre 30000
                 logger.Log("Best uwre-dev accuracy: %s" %(self.best_dev_uwre))
                 logger.Log("MultiNLI Train accuracy: %s" %(self.best_strain_acc))
                 self.completed = True
@@ -264,9 +262,9 @@ test_mismatched = dev_uwre
 if test == False:
     classifier.train(training_uwre, dev_uwre, test_uwre)
     logger.Log("Acc on UWRE dev: %s" %(evaluate_classifier(classifier.classify, test_matched, FIXED_PARAMETERS["batch_size"]))[0])
-    logger.Log("F1-score on UWRE dev: %s" %(evaluate_f1(classifier.classify, test_mismatched, FIXED_PARAMETERS["batch_size"]))[0])
+    logger.Log("F1-score on UWRE dev: %s" %(evaluate_f1(classifier.classify, test_mismatched, FIXED_PARAMETERS["batch_size"])))
     logger.Log("Acc on UWRE test: %s" %(evaluate_classifier(classifier.classify, test_matched, FIXED_PARAMETERS["batch_size"]))[0])
-    logger.Log("F1-score on UWRE test: %s" %(evaluate_f1(classifier.classify, test_mismatched, FIXED_PARAMETERS["batch_size"]))[0])
+    logger.Log("F1-score on UWRE test: %s" %(evaluate_f1(classifier.classify, test_mismatched, FIXED_PARAMETERS["batch_size"])))
 else:
     results = evaluate_uwre_final(classifier.restore, classifier.classify, [test_matched, test_mismatched], FIXED_PARAMETERS["batch_size"])
     logger.Log("Acc on UWRE test: %s" %(results[0]))

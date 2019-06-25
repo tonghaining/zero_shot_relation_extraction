@@ -14,7 +14,7 @@ import json
 
 parser = argparse.ArgumentParser()
 
-models = ['esim', 'mean_esim', 'max_esim', 'attention_esim']
+models = ['esim', 'mean_esim', 'max_esim', 'inference_esim', 'hidden_esim']
 def types(s):
     options = [mod for mod in models if s in models]
     if len(options) == 1:
@@ -32,6 +32,7 @@ def subtypes(s):
 parser.add_argument("model_type", choices=models, type=types, help="Give model type.")
 parser.add_argument("model_name", type=str, help="Give model name, this will name logs and checkpoints made. For example cbow, esim_test etc.")
 
+parser.add_argument("--crossfold", type=str, default="0")
 parser.add_argument("--datapath", type=str, default="../data")
 parser.add_argument("--ckptpath", type=str, default="../logs")
 parser.add_argument("--logpath", type=str, default="../logs")
@@ -87,9 +88,13 @@ def load_parameters():
         "test_matched": test_matched,
         "test_mismatched": test_mismatched,
                 
-        "training_uwre": "{}/uwre/train.0".format(args.datapath),
-        "dev_uwre": "{}/uwre/dev.0".format(args.datapath),
-        "test_uwre": "{}/uwre/test.0".format(args.datapath),
+#        "training_uwre": "{}/uwre/train.0".format(args.datapath),
+#        "dev_uwre": "{}/uwre/dev.0".format(args.datapath),
+#        "test_uwre": "{}/uwre/test.0".format(args.datapath),
+        "training_uwre": "../data/uwre/train.{}".format(args.crossfold),
+        "dev_uwre": "../data/uwre/dev.{}".format(args.crossfold),
+        "test_uwre": "../data/uwre/test.{}".format(args.crossfold),
+
 
         "embedding_data_path": "{}/glove.840B.300d.txt".format(args.datapath),
         "relation_description": "{}/extended_relation_descriptions.json".format(args.datapath),
@@ -102,7 +107,7 @@ def load_parameters():
         "keep_rate": args.keep_rate, 
         "description_num": format(args.description_num), # 1,5,10,15
         # "description_num": 4
-        "batch_size": 32, # 16 or 32
+        "batch_size": 16, # 16 or 32
         "learning_rate": args.learning_rate,
         "emb_train": args.emb_train,
         "alpha": args.alpha,
