@@ -22,8 +22,8 @@ class MyModel(object):
         self.W_mlp = tf.Variable(tf.random_normal([self.dim * 8, self.dim], stddev=0.1))
         self.b_mlp = tf.Variable(tf.random_normal([self.dim], stddev=0.1))
 
-        self.W_cl = tf.Variable(tf.random_normal([self.dim, 3], stddev=0.1))
-        self.b_cl = tf.Variable(tf.random_normal([3], stddev=0.1))
+        self.W_cl = tf.Variable(tf.random_normal([self.dim, 2], stddev=0.1))
+        self.b_cl = tf.Variable(tf.random_normal([2], stddev=0.1))
 
         ## Function for embedding lookup and dropout at embedding layer
         def emb_drop(x):
