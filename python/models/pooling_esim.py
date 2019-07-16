@@ -3,12 +3,12 @@ from util import blocks
 
 # models/esim_modify
 class MyModel(object):
-    def __init__(self, seq_length, emb_dim, hidden_dim, embeddings, emb_train, batch_size):
+    def __init__(self, seq_length, emb_dim, hidden_dim, embeddings, emb_train, description_num):
         ## Define hyperparameters
         self.embedding_dim = emb_dim
         self.dim = hidden_dim
         self.sequence_length = seq_length 
-        self.n = batch_size
+        self.description_num = description_num
 
         ## Define the placeholders
         self.premise_x = tf.placeholder(tf.int32, [None, self.sequence_length]) 
@@ -128,7 +128,7 @@ class MyModel(object):
 
                 
         v_con = tf.concat([v_1_ave, v_2_ave, v_1_max, v_2_max], 1)
-        v_fold = tf.reshape(v_con, [self.n, -1, self.dim * 8])
+        v_fold = tf.reshape(v_con, [-1, self.description_num, self.dim * 8])
         v = tf.reduce_mean(v_fold, 1)
 
         # MLP layer

@@ -11,6 +11,7 @@ FIXED_PARAMETERS = params.load_parameters()
 LABEL_MAP = {
     "entailment": 0,
     "neutral": 1,
+    "contradiction": 1,
 #    "contradiction": 2,
     "hidden": 0
 }

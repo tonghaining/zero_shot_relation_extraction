@@ -45,8 +45,9 @@ class MyModel(object):
             premise_outs, c1 = blocks.reader(premise_in, prem_seq_lengths, self.dim, c2, scope=fstPremise_scope)
 
         (premise_out0, premise1) = premise_outs
-        paddings = tf.constant([[0, 0], [0, 0, ], [0, 300]])
-        premise_bi = tf.pad(premise_out0, paddings, "CONSTANT")
+        # paddings = tf.constant([[0, 0], [0, 0, ], [0, 300]])
+        #premise_bi = tf.pad(premise_out0, paddings, "CONSTANT")
+        premise_bi = tf.concat(premise_outs, axis=2)
         hypothesis_bi = tf.concat(hypothesis_outs, axis=2)
 
         premise_list = tf.unstack(premise_bi, axis=1)
@@ -114,8 +115,9 @@ class MyModel(object):
         with tf.variable_scope("conditional_inference_composition-v1") as v1_scope:
             v1_outs, c3 = blocks.reader(m_a, prem_seq_lengths, self.dim, c4, scope=v1_scope)
 
-        (v1_out0, v1_out1) = v1_outs
-        v1_bi = tf.pad(v1_out0, paddings, "CONSTANT")
+        # (v1_out0, v1_out1) = v1_outs
+        # v1_bi = tf.pad(v1_out0, paddings, "CONSTANT")
+        v1_bi = tf.concat(v1_outs, axis=2)
         v2_bi = tf.concat(v2_outs, axis=2)
 
 

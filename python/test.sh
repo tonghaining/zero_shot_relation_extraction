@@ -9,4 +9,4 @@
 
 #your script, in this case: write the hostname and the ids of the chosen gpus.
 echo $CUDA_VISIBLE_DEVICES
-PYTHONPATH=$PYTHONPATH:. python train_multi.py inference_esim inference_6_DeNum_15 --description_num 15 --crossfold 6 --genre travel --emb_train --test
+PYTHONPATH=$PYTHONPATH:. python train_multi.py hidden_esim hidden_8_DeNum_15 --description_num 15 --crossfold 8 --genre travel --test

@@ -26,7 +26,7 @@ module = importlib.import_module(".".join(['models', model]))
 MyModel = getattr(module, 'MyModel')
 
 relation_description_path = FIXED_PARAMETERS['relation_description']
-# description_num = int(FIXED_PARAMETERS["description_num"])
+description_num = int(FIXED_PARAMETERS["description_num"])
 
 # Logging parameter settings at each launch of training script
 # This will help ensure nothing goes awry in reloading a model and we consistenyl use the same hyperparameter settings.
@@ -78,10 +78,9 @@ class modelClassifier:
         self.keep_rate = FIXED_PARAMETERS["keep_rate"]
         self.sequence_length = FIXED_PARAMETERS["seq_length"]
         self.alpha = FIXED_PARAMETERS["alpha"]
-        self.description_num = int(FIXED_PARAMETERS["description_num"])
 
         logger.Log("Building model from %s.py" %(model))
-        self.model = MyModel(seq_length=self.sequence_length, emb_dim=self.embedding_dim,  hidden_dim=self.dim, embeddings=loaded_embeddings, emb_train=self.emb_train, description_num=self.description_num)
+        self.model = MyModel(seq_length=self.sequence_length, emb_dim=self.embedding_dim,  hidden_dim=self.dim, embeddings=loaded_embeddings, emb_train=self.emb_train, batch_size=self.batch_size)
 
         # Perform gradient descent with Adam
         self.optimizer = tf.train.AdamOptimizer(self.learning_rate, beta1=0.9, beta2=0.999).minimize(self.model.total_cost)
@@ -104,11 +103,11 @@ class modelClassifier:
             relation = dataset[i]['relation']
 
             premise_instance = dataset[i]['sentence_index_sequence']
-            premise = [premise_instance] * self.description_num
+            premise = [premise_instance] * description_num
             premise_list.append(premise)
 
             hypothesis_len = len(padded_relation_descriptions[relation])
-            hypothesis_ind = np.random.choice(hypothesis_len, self.description_num, replace=False)
+            hypothesis_ind = np.random.choice(hypothesis_len, description_num, replace=False)
             hypothesis = padded_relation_descriptions[relation][hypothesis_ind]
             hypothesis_list.append(hypothesis)
 

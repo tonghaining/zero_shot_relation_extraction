@@ -3,12 +3,12 @@ from util import blocks
 
 # models/esim_modify
 class MyModel(object):
-    def __init__(self, seq_length, emb_dim, hidden_dim, embeddings, emb_train, description_num):
+    def __init__(self, seq_length, emb_dim, hidden_dim, embeddings, emb_train, batch_size):
         ## Define hyperparameters
         self.embedding_dim = emb_dim
         self.dim = hidden_dim
         self.sequence_length = seq_length
-        self.description_num = description_num
+        self.batch_size = batch_size
 
         ## Define the placeholders
         self.premise_x = tf.placeholder(tf.int32, [None, self.sequence_length])
@@ -105,20 +105,20 @@ class MyModel(object):
         hyp_diff = tf.subtract(hypothesis_bi, hypothesis_attns)
         hyp_mul = tf.multiply(hypothesis_bi, hypothesis_attns)
 
-        self.premise_x_mean = tf.reduce_max(tf.reshape(self.premise_x, [-1, self.description_num,self.sequence_length]), 1)
-        self.hypothesis_x_mean = tf.reduce_max(tf.reshape(self.hypothesis_x, [-1, self.description_num, self.sequence_length]), 1)
+        self.premise_x_mean = tf.reduce_max(tf.reshape(self.premise_x, [self.batch_size, -1,self.sequence_length]), 1)
+        self.hypothesis_x_mean = tf.reduce_max(tf.reshape(self.hypothesis_x, [self.batch_size, -1,self.sequence_length]), 1)
         prem_seq_lengths_mean, mask_prem_mean = blocks.length(self.premise_x_mean)
         hyp_seq_lengths_mean, mask_hyp_mean = blocks.length(self.hypothesis_x_mean)
 
-        premise_bi_mean = tf.reduce_mean(tf.reshape(premise_bi, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        premise_attns_mean = tf.reduce_mean(tf.reshape(premise_attns, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        hypothesis_bi_mean = tf.reduce_mean(tf.reshape(hypothesis_bi, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        hypothesis_attns_mean = tf.reduce_mean(tf.reshape(hypothesis_attns, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
+        premise_bi_mean = tf.reduce_mean(tf.reshape(premise_bi, [self.batch_size, -1, self.sequence_length, self.dim]), 1)
+        premise_attns_mean = tf.reduce_mean(tf.reshape(premise_attns, [self.batch_size, -1, self.sequence_length, self.dim]), 1)
+        hypothesis_bi_mean = tf.reduce_mean(tf.reshape(hypothesis_bi, [self.batch_size, -1, self.sequence_length, self.dim]), 1)
+        hypothesis_attns_mean = tf.reduce_mean(tf.reshape(hypothesis_attns, [self.batch_size, -1, self.sequence_length, self.dim]), 1)
 
-        prem_diff_mean = tf.reduce_mean(tf.reshape(prem_diff, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        prem_mul_mean = tf.reduce_mean(tf.reshape(prem_mul, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        hyp_diff_mean = tf.reduce_mean(tf.reshape(hyp_diff, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        hyp_mul_mean = tf.reduce_mean(tf.reshape(hyp_mul, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
+        prem_diff_mean = tf.reduce_mean(tf.reshape(prem_diff, [self.batch_size, -1, self.sequence_length, self.dim]), 1)
+        prem_mul_mean = tf.reduce_mean(tf.reshape(prem_mul, [self.batch_size, -1, self.sequence_length, self.dim]), 1)
+        hyp_diff_mean = tf.reduce_mean(tf.reshape(hyp_diff, [self.batch_size, -1, self.sequence_length, self.dim]), 1)
+        hyp_mul_mean = tf.reduce_mean(tf.reshape(hyp_mul, [self.batch_size, -1, self.sequence_length, self.dim]), 1)
 
         m_a = tf.concat([premise_bi_mean, premise_attns_mean, prem_diff_mean, prem_mul_mean], 2) # (?,50, 2400)
         m_b = tf.concat([hypothesis_bi_mean, hypothesis_attns_mean, hyp_diff_mean, hyp_mul_mean], 2) # (?,50, 2400)
