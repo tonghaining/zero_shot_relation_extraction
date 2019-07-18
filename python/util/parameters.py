@@ -14,7 +14,7 @@ import json
 
 parser = argparse.ArgumentParser()
 
-models = ['esim', 'mean_esim', 'max_esim', 'inference_esim', 'hidden_esim', 'pooling_esim']
+models = ['esim', 'inference_esim', 'hidden_esim', 'pooling_esim']
 def types(s):
     options = [mod for mod in models if s in models]
     if len(options) == 1:
@@ -39,7 +39,7 @@ parser.add_argument("--logpath", type=str, default="../logs")
 
 parser.add_argument("--emb_to_load", type=int, default=None, help="Number of embeddings to load. If None, all embeddings are loaded.")
 parser.add_argument("--learning_rate", type=float, default=0.0004, help="Learning rate for model")
-parser.add_argument("--keep_rate", type=float, default=0.5, help="Keep rate for dropout in the model")
+parser.add_argument("--keep_rate", type=float, default=0.9, help="Keep rate for dropout in the model")
 parser.add_argument("--description_num", type=int, default=5)
 parser.add_argument("--seq_length", type=int, default=50, help="Max sequence length")
 parser.add_argument("--emb_train", action='store_true', help="Call if you want to make your word embeddings trainable.")
@@ -88,9 +88,10 @@ def load_parameters():
         "test_matched": test_matched,
         "test_mismatched": test_mismatched,
                 
-#        "training_uwre": "{}/uwre/train.0".format(args.datapath),
-#        "dev_uwre": "{}/uwre/dev.0".format(args.datapath),
-#        "test_uwre": "{}/uwre/test.0".format(args.datapath),
+        "training_mnli": "{}/multinli_0.9/multinli_0.9_train.jsonl".format(args.datapath),
+        "dev_matched": "{}/multinli_0.9/multinli_0.9_dev_matched.jsonl".format(args.datapath),
+        "dev_mismatched": "{}/multinli_0.9/multinli_0.9_dev_mismatched.jsonl".format(args.datapath),
+        
         "training_uwre": "../data/uwre/train.{}".format(args.crossfold),
         "dev_uwre": "../data/uwre/dev.{}".format(args.crossfold),
         "test_uwre": "../data/uwre/test.{}".format(args.crossfold),
@@ -107,7 +108,7 @@ def load_parameters():
         "keep_rate": args.keep_rate, 
         "description_num": format(args.description_num), # 1,5,10,15
         # "description_num": 4
-        "batch_size": 16, # 16 or 32
+        "batch_size": 32, # 16 or 32
         "learning_rate": args.learning_rate,
         "emb_train": args.emb_train,
         "alpha": args.alpha,

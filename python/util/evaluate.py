@@ -174,8 +174,8 @@ def predictions_kaggle(classifier, eval_set, batch_size, name):
     """
     INVERSE_MAP = {
     0: "entailment",
-    1: "neutral",
-    2: "contradiction"
+    1: "neutral or contradiction"
+    # 2: "contradiction"
     }
 
     hypotheses = classifier(eval_set)
