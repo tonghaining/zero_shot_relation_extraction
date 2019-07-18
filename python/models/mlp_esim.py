@@ -45,9 +45,6 @@ class MyModel(object):
         with tf.variable_scope("conditional_first_premise_layer") as fstPremise_scope:
             premise_outs, c1 = blocks.reader(premise_in, prem_seq_lengths, self.dim, c2, scope=fstPremise_scope)
 
-        # (premise_out0, premise1) = premise_outs
-        # paddings = tf.constant([[0, 0], [0, 0, ], [0, 300]])
-        # premise_bi = tf.pad(premise_out0, paddings, "CONSTANT")
         premise_bi = tf.concat(premise_outs, axis=2)
         hypothesis_bi = tf.concat(hypothesis_outs, axis=2)
 
@@ -105,30 +102,15 @@ class MyModel(object):
         hyp_diff = tf.subtract(hypothesis_bi, hypothesis_attns)
         hyp_mul = tf.multiply(hypothesis_bi, hypothesis_attns)
 
-        self.premise_x_mean = tf.reduce_mean(tf.reshape(self.premise_x, [-1, self.description_num,self.sequence_length]), 1)
-        self.hypothesis_x_mean = tf.reduce_mean(tf.reshape(self.hypothesis_x, [-1, self.description_num,self.sequence_length]), 1)
-        prem_seq_lengths_mean, mask_prem_mean = blocks.length(self.premise_x_mean)
-        hyp_seq_lengths_mean, mask_hyp_mean = blocks.length(self.hypothesis_x_mean)
-
-        premise_bi_mean = tf.reduce_mean(tf.reshape(premise_bi, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        premise_attns_mean = tf.reduce_mean(tf.reshape(premise_attns, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        hypothesis_bi_mean = tf.reduce_mean(tf.reshape(hypothesis_bi, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        hypothesis_attns_mean = tf.reduce_mean(tf.reshape(hypothesis_attns, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-
-        prem_diff_mean = tf.reduce_mean(tf.reshape(prem_diff, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        prem_mul_mean = tf.reduce_mean(tf.reshape(prem_mul, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        hyp_diff_mean = tf.reduce_mean(tf.reshape(hyp_diff, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-        hyp_mul_mean = tf.reduce_mean(tf.reshape(hyp_mul, [-1, self.description_num, self.sequence_length, self.dim * 2]), 1)
-
-        m_a = tf.concat([premise_bi_mean, premise_attns_mean, prem_diff_mean, prem_mul_mean], 2) # (?,50, 2400)
-        m_b = tf.concat([hypothesis_bi_mean, hypothesis_attns_mean, hyp_diff_mean, hyp_mul_mean], 2) # (?,50, 2400)
+        m_a = tf.concat([premise_bi, premise_attns, prem_diff, prem_mul], 2)
+        m_b = tf.concat([hypothesis_bi, hypothesis_attns, hyp_diff, hyp_mul], 2) 
 
         ### Inference Composition ###
 
-        v2_outs, c4 = blocks.biLSTM(m_b, dim=self.dim, seq_len=hyp_seq_lengths_mean, name='v2') # hypothesis
+        v2_outs, c4 = blocks.biLSTM(m_b, dim=self.dim, seq_len=hyp_seq_lengths, name='v2') # hypothesis
         # same to hypothesis premise part, calculate v1 based on v2 during Inference Composition
         with tf.variable_scope("conditional_inference_composition-v1") as v1_scope:
-            v1_outs, c3 = blocks.reader(m_a, prem_seq_lengths_mean, self.dim, c4, scope=v1_scope) # premise
+            v1_outs, c3 = blocks.reader(m_a, prem_seq_lengths, self.dim, c4, scope=v1_scope) # premise
 
         v1_bi = tf.concat(v1_outs, axis=2) # (?, 50, 600)
         v2_bi = tf.concat(v2_outs, axis=2) # (?, 50, 600)
@@ -136,10 +118,10 @@ class MyModel(object):
 
         ### Pooling Layer ###
         v_1_sum = tf.reduce_sum(v1_bi, 1) # 整列求和 (?, 600) 把每句话的50个单词省略了?
-        v_1_ave = tf.div(v_1_sum, tf.expand_dims(tf.cast(hyp_seq_lengths_mean, tf.float32), -1)) # (?, 600)
+        v_1_ave = tf.div(v_1_sum, tf.expand_dims(tf.cast(hyp_seq_lengths, tf.float32), -1)) # (?, 600)
 
         v_2_sum = tf.reduce_sum(v2_bi, 1) # 整列求和 (?, 600)
-        v_2_ave = tf.div(v_2_sum, tf.expand_dims(tf.cast(hyp_seq_lengths_mean, tf.float32), -1)) # (?, 600)
+        v_2_ave = tf.div(v_2_sum, tf.expand_dims(tf.cast(hyp_seq_lengths, tf.float32), -1)) # (?, 600)
 
         v_1_max = tf.reduce_max(v1_bi, 1) # 整列求和 (?, 600)
         v_2_max = tf.reduce_max(v2_bi, 1) # 整列求和 (?, 600)
@@ -149,9 +131,11 @@ class MyModel(object):
 
         # MLP layer
         h_mlp = tf.nn.tanh(tf.matmul(v, self.W_mlp) + self.b_mlp)
+        h_fold_mlp = tf.reshape(h_mlp, [-1, self.description_num, self.dim])
+        h_mean_mlp = tf.reduce_mean(h_fold_mlp, 1)
 
         # Dropout applied to classifier
-        h_drop = tf.nn.dropout(h_mlp, self.keep_rate_ph)
+        h_drop = tf.nn.dropout(h_mean_mlp, self.keep_rate_ph)
 
         # Get prediction
         self.logits = tf.matmul(h_drop, self.W_cl) + self.b_cl
