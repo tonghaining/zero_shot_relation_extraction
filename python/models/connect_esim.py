@@ -1,12 +1,14 @@
 import tensorflow as tf
 from util import blocks
 
+# models/esim_modify
 class MyModel(object):
     def __init__(self, seq_length, emb_dim, hidden_dim, embeddings, emb_train, description_num):
         ## Define hyperparameters
         self.embedding_dim = emb_dim
         self.dim = hidden_dim
-        self.sequence_length = seq_length 
+        self.sequence_length = seq_length
+        self.description_num = description_num
 
         ## Define the placeholders
         self.premise_x = tf.placeholder(tf.int32, [None, self.sequence_length])
@@ -16,13 +18,13 @@ class MyModel(object):
 
         ## Define parameters
         self.E = tf.Variable(embeddings, trainable=emb_train)
-        
+
         self.W_mlp = tf.Variable(tf.random_normal([self.dim * 8, self.dim], stddev=0.1))
         self.b_mlp = tf.Variable(tf.random_normal([self.dim], stddev=0.1))
 
-        self.W_cl = tf.Variable(tf.random_normal([self.dim, 2], stddev=0.1)) # 3
-        self.b_cl = tf.Variable(tf.random_normal([2], stddev=0.1)) # 3
-        
+        self.W_cl = tf.Variable(tf.random_normal([self.dim, 2], stddev=0.1))
+        self.b_cl = tf.Variable(tf.random_normal([2], stddev=0.1))
+
         ## Function for embedding lookup and dropout at embedding layer
         def emb_drop(x):
             emb = tf.nn.embedding_lookup(self.E, x)
@@ -35,7 +37,6 @@ class MyModel(object):
 
 
         ### First cbiLSTM layer ###
-
         premise_in = emb_drop(self.premise_x)
         hypothesis_in = emb_drop(self.hypothesis_x)
 
@@ -44,9 +45,6 @@ class MyModel(object):
         with tf.variable_scope("conditional_first_premise_layer") as fstPremise_scope:
             premise_outs, c1 = blocks.reader(premise_in, prem_seq_lengths, self.dim, c2, scope=fstPremise_scope)
 
-        # (premise_out0, premise1) = premise_outs
-        # paddings = tf.constant([[0, 0], [0, 0, ], [0, 300]])
-        #premise_bi = tf.pad(premise_out0, paddings, "CONSTANT")
         premise_bi = tf.concat(premise_outs, axis=2)
         hypothesis_bi = tf.concat(hypothesis_outs, axis=2)
 
@@ -66,12 +64,12 @@ class MyModel(object):
             for j in range(self.sequence_length):
                 score_ij = tf.reduce_sum(tf.multiply(premise_list[i], hypothesis_list[j]), 1, keep_dims=True)
                 scores_i_list.append(score_ij)
-            
+
             scores_i = tf.stack(scores_i_list, axis=1)
             alpha_i = blocks.masked_softmax(scores_i, mask_hyp)
             a_tilde_i = tf.reduce_sum(tf.multiply(alpha_i, hypothesis_bi), 1)
             premise_attn.append(a_tilde_i)
-            
+
             scores_all.append(scores_i)
             alphas.append(alpha_i)
 
@@ -89,12 +87,12 @@ class MyModel(object):
             betas.append(beta_j)
 
         # Make attention-weighted sentence representations into one tensor,
-        premise_attns = tf.stack(premise_attn, axis=1)
-        hypothesis_attns = tf.stack(hypothesis_attn, axis=1)
+        premise_attns = tf.stack(premise_attn, axis=1) # (?, 50, 600)
+        hypothesis_attns = tf.stack(hypothesis_attn, axis=1) # (?, 50, 600)
 
-        # For making attention plots, 
-        self.alpha_s = tf.stack(alphas, axis=2)
-        self.beta_s = tf.stack(betas, axis=2) 
+        # For making attention plots,
+        self.alpha_s = tf.stack(alphas, axis=2) # (?, 50, 50, 1)
+        self.beta_s = tf.stack(betas, axis=2) # (?, 50, 50, 1)
 
 
         ### Subcomponent Inference ###
@@ -105,35 +103,43 @@ class MyModel(object):
         hyp_mul = tf.multiply(hypothesis_bi, hypothesis_attns)
 
         m_a = tf.concat([premise_bi, premise_attns, prem_diff, prem_mul], 2)
-        m_b = tf.concat([hypothesis_bi, hypothesis_attns, hyp_diff, hyp_mul], 2)
-
+        m_b = tf.concat([hypothesis_bi, hypothesis_attns, hyp_diff, hyp_mul], 2) 
 
         ### Inference Composition ###
+        
+        m_a_mean = tf.reduce_mean(tf.reshape(m_a, [-1, self.description_num, self.sequence_length,  8 * self.dim]), axis=1)
+        m_b_all = tf.unstack(tf.reshape(m_b, [-1, self.description_num, self.sequence_length,  8 * self.dim]), axis=1)
 
-        v2_outs, c4 = blocks.biLSTM(m_b, dim=self.dim, seq_len=hyp_seq_lengths, name='v2')
-        # same to hypothesis premise part, calculate v1 based on v2 during Inference Composition
+        self.premise_x_mean = tf.reduce_max(tf.reshape(self.premise_x, [-1, self.description_num,self.sequence_length]), 1)
+        self.hypothesis_x_mean = tf.reduce_max(tf.reshape(self.hypothesis_x, [-1, self.description_num, self.sequence_length]), 1)
+        prem_seq_lengths_mean, mask_prem_mean = blocks.length(self.premise_x_mean)
+        hyp_seq_lengths_mean, mask_hyp_mean = blocks.length(self.hypothesis_x_mean)
+
+
+        v2_outs, c4 = blocks.biLSTM(m_b_all[0], dim=self.dim, seq_len=hyp_seq_lengths_mean, name='v2') # hypothesis
+        for i in range(self.description_num - 1):
+            with tf.variable_scope(str(i + 1) + "-th hypothesis") as vi_scope:
+                v2_outs, c4 = blocks.reader(m_b_all[i+1], hyp_seq_lengths_mean, self.dim, c4, scope=vi_scope)
+
         with tf.variable_scope("conditional_inference_composition-v1") as v1_scope:
-            v1_outs, c3 = blocks.reader(m_a, prem_seq_lengths, self.dim, c4, scope=v1_scope)
+            v1_outs, c3 = blocks.reader(m_a_mean, prem_seq_lengths_mean, self.dim, c4, scope=v1_scope) # premise
 
-        # (v1_out0, v1_out1) = v1_outs
-        # v1_bi = tf.pad(v1_out0, paddings, "CONSTANT")
-        v1_bi = tf.concat(v1_outs, axis=2)
-        v2_bi = tf.concat(v2_outs, axis=2)
+        v1_bi = tf.concat(v1_outs, axis=2) # (?, 50, 600)
+        v2_bi = tf.concat(v2_outs, axis=2) # (?, 50, 600)
 
 
         ### Pooling Layer ###
+        v_1_sum = tf.reduce_sum(v1_bi, 1) 
+        v_1_ave = tf.div(v_1_sum, tf.expand_dims(tf.cast(hyp_seq_lengths, tf.float32), -1)) 
 
-        v_1_sum = tf.reduce_sum(v1_bi, 1)
-        v_1_ave = tf.div(v_1_sum, tf.expand_dims(tf.cast(prem_seq_lengths, tf.float32), -1))
+        v_2_sum = tf.reduce_sum(v2_bi, 1) 
+        v_2_ave = tf.div(v_2_sum, tf.expand_dims(tf.cast(hyp_seq_lengths, tf.float32), -1)) # (?, 600)
 
-        v_2_sum = tf.reduce_sum(v2_bi, 1)
-        v_2_ave = tf.div(v_2_sum, tf.expand_dims(tf.cast(hyp_seq_lengths, tf.float32), -1))
+        v_1_max = tf.reduce_max(v1_bi, 1) # 整列求和 (?, 600)
+        v_2_max = tf.reduce_max(v2_bi, 1) # 整列求和 (?, 600)
 
-        v_1_max = tf.reduce_max(v1_bi, 1)
-        v_2_max = tf.reduce_max(v2_bi, 1)
 
         v = tf.concat([v_1_ave, v_2_ave, v_1_max, v_2_max], 1)
-        
 
         # MLP layer
         h_mlp = tf.nn.tanh(tf.matmul(v, self.W_mlp) + self.b_mlp)
@@ -144,5 +150,6 @@ class MyModel(object):
         # Get prediction
         self.logits = tf.matmul(h_drop, self.W_cl) + self.b_cl
 
+
         # Define the cost function
-        self.total_cost = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y, logits=self.logits))
+        self.total_cost = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y, logits=self.logits)) # 一个数字

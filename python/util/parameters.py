@@ -14,7 +14,7 @@ import json
 
 parser = argparse.ArgumentParser()
 
-models = ['esim', 'inference_esim', 'mlp_esim', 'pooling_esim']
+models = ['esim', 'inference_esim', 'mlp_esim', 'pooling_esim', 'connect_esim']
 def types(s):
     options = [mod for mod in models if s in models]
     if len(options) == 1:

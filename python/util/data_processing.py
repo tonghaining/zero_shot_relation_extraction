@@ -8,12 +8,21 @@ import pickle
 
 FIXED_PARAMETERS = params.load_parameters()
 
-LABEL_MAP = {
+# LABEL_MAP = {
+#     "entailment": 0,
+#     "neutral": 1,
+#     "contradiction": 1,
+# #    "contradiction": 2,
+#     "hidden": 0
+# }
+
+NLI_LABEL_MAP = {
+    "entailment": 0,
+    "contradiction": 1,
+}
+UWRE_LABEL_MAP = {
     "entailment": 0,
     "neutral": 1,
-    "contradiction": 1,
-#    "contradiction": 2,
-    "hidden": 0
 }
 
 PADDING = "<PAD>"
@@ -35,9 +44,9 @@ def load_nli_data(path, snli=False):
     with open(path) as f:
         for line in f:
             loaded_example = json.loads(line)
-            if loaded_example["gold_label"] not in LABEL_MAP:
+            if loaded_example["gold_label"] not in NLI_LABEL_MAP:
                 continue
-            loaded_example["label"] = LABEL_MAP[loaded_example["gold_label"]]
+            loaded_example["label"] = NLI_LABEL_MAP[loaded_example["gold_label"]]
             if snli:
                 loaded_example["genre"] = "snli"
             data.append(loaded_example)
@@ -55,9 +64,9 @@ def load_nli_data_genre(path, genre, snli=True):
     with open(path) as f:
         for line in f:
             loaded_example = json.loads(line)
-            if loaded_example["gold_label"] not in LABEL_MAP:
+            if loaded_example["gold_label"] not in NLI_LABEL_MAP:
                 continue
-            loaded_example["label"] = LABEL_MAP[loaded_example["gold_label"]]
+            loaded_example["label"] = NLI_LABEL_MAP[loaded_example["gold_label"]]
             if snli:
                 loaded_example["genre"] = "snli"
             if loaded_example["genre"] == genre:
@@ -80,6 +89,32 @@ def build_nli_dictionary(training_datasets):
     vocabulary = list(vocabulary)
     vocabulary = [PADDING, UNKNOWN] + vocabulary
         
+    word_indices = dict(zip(vocabulary, range(len(vocabulary))))
+
+    return word_indices
+
+def build_dictionary(multi_nli_datasets, uwre_training_datasets, relation_descriptions):
+    """
+    Extract vocabulary and build dictionary.
+    """
+    word_counter = collections.Counter()
+    for i, dataset in enumerate(multi_nli_datasets):
+        for example in dataset:
+            word_counter.update(tokenize(example['sentence1_binary_parse']))
+            word_counter.update(tokenize(example['sentence2_binary_parse']))
+            
+    for i, dataset in enumerate(uwre_training_datasets):
+        for example in dataset:
+            word_counter.update(tokenize(example['sentence']))
+    
+    for relation in relation_descriptions:
+        for description in relation_descriptions[relation]:
+            word_counter.update(tokenize(description))
+    
+    vocabulary = set([word for word in word_counter])
+    vocabulary = list(vocabulary)
+    vocabulary = [PADDING, UNKNOWN] + vocabulary
+
     word_indices = dict(zip(vocabulary, range(len(vocabulary))))
 
     return word_indices
@@ -117,9 +152,9 @@ def load_uwre_data(path):
     with open(path) as f:
         for line in f:
             loaded_example = json.loads(line)
-            if loaded_example["gold_label"] not in LABEL_MAP:
+            if loaded_example["gold_label"] not in UWRE_LABEL_MAP:
                 continue
-            loaded_example["label"] = LABEL_MAP[loaded_example["gold_label"]]
+            loaded_example["label"] = UWRE_LABEL_MAP[loaded_example["gold_label"]]
             loaded_example["genre"] = "uwre"
             data.append(loaded_example)
         random.seed(1)

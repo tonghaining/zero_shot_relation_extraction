@@ -91,7 +91,7 @@ def evaluate_f1(classifier, eval_set, batch_size):
     for i in range(full_batch):
         y_true[i] = eval_set[i]['label']
         y_pred[i] = hypotheses[i]
-    f1 = f1_score(y_true, y_pred, labels=[0,1,2], average='macro')
+    f1 = f1_score(y_true, y_pred, labels=[0,1], average='macro')
     return f1
 
 def evaluate_uwre_final(restore, classifier, eval_sets, batch_size):
@@ -122,7 +122,7 @@ def evaluate_uwre_final(restore, classifier, eval_sets, batch_size):
             if hypothesis == eval_set[i]['label']:
                 correct += 1  
         percentages.append(correct / float(len(eval_set)))  
-        f1 = f1_score(y_true, y_predict, labels=[0,1,2], average='macro')
+        f1 = f1_score(y_true, y_predict, labels=[0,1], average='macro')
     return percentages, f1
 
 def evaluate_final(restore, classifier, eval_sets, batch_size):
@@ -174,7 +174,7 @@ def predictions_kaggle(classifier, eval_set, batch_size, name):
     """
     INVERSE_MAP = {
     0: "entailment",
-    1: "neutral or contradiction"
+    1: "contradiction"
     # 2: "contradiction"
     }
 

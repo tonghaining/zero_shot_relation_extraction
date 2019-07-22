@@ -38,6 +38,13 @@ dev_mismatched = load_nli_data(FIXED_PARAMETERS["dev_mismatched"])
 test_matched = load_nli_data(FIXED_PARAMETERS["test_matched"])
 test_mismatched = load_nli_data(FIXED_PARAMETERS["test_mismatched"])
 
+training_uwre = load_uwre_data(FIXED_PARAMETERS["training_uwre"])
+dev_uwre = load_uwre_data(FIXED_PARAMETERS["dev_uwre"])
+
+relation_description_path = FIXED_PARAMETERS['relation_description']
+with open(relation_description_path, 'r') as file:
+    relation_descriptions = json.load(file)
+
 if 'temp.jsonl' in FIXED_PARAMETERS["test_matched"]:
     # Removing temporary empty file that was created in parameters.py
     os.remove(FIXED_PARAMETERS["test_matched"])
@@ -47,12 +54,14 @@ dictpath = os.path.join(FIXED_PARAMETERS["log_path"], modname) + ".p"
 
 if not os.path.isfile(dictpath): 
     logger.Log("Building dictionary")
-    word_indices = build_nli_dictionary([training_mnli])
+    word_indices = build_dictionary([training_mnli], [training_uwre, dev_uwre], relation_descriptions)
     
     logger.Log("Padding and indexifying sentences")
     sentences_to_padded_index_sequences(word_indices, [training_mnli, 
                                         dev_matched, dev_mismatched, 
                                         test_matched, test_mismatched])
+    uwre_sentences_to_padded_index_sequences(word_indices, [dev_uwre])
+    padded_relation_descriptions = descriptions_to_padded_index_sequences(word_indices, relation_descriptions)
     pickle.dump(word_indices, open(dictpath, "wb"))
 
 else:
@@ -62,6 +71,8 @@ else:
     sentences_to_padded_index_sequences(word_indices, [training_mnli, 
                                         dev_matched, dev_mismatched, 
                                         test_matched, test_mismatched])
+    uwre_sentences_to_padded_index_sequences(word_indices, [dev_uwre])
+    padded_relation_descriptions = descriptions_to_padded_index_sequences(word_indices, relation_descriptions)
 
 logger.Log("Loading embeddings")
 loaded_embeddings = loadEmbedding_rand(FIXED_PARAMETERS["embedding_data_path"], word_indices)
@@ -99,7 +110,30 @@ class modelClassifier:
         self.init = tf.global_variables_initializer()
         self.sess = None
         self.saver = tf.train.Saver()
+    
+    def get_uwre_minibatch(self, dataset, start_index, end_index):
+        indices = range(start_index, end_index)
+        premise_list = []
+        hypothesis_list = []
 
+        for i in indices:
+            relation = dataset[i]['relation']
+
+            premise_instance = dataset[i]['sentence_index_sequence']
+            premise = [premise_instance] * self.description_num
+            premise_list.append(premise)
+
+            hypothesis_len = len(padded_relation_descriptions[relation])
+            hypothesis_ind = np.random.choice(hypothesis_len, self.description_num, replace=False)
+            hypothesis = padded_relation_descriptions[relation][hypothesis_ind]
+            hypothesis_list.append(hypothesis)
+
+        premise_vectors = np.vstack(premise_list)
+        hypothesis_vectors = np.vstack(hypothesis_list)
+        genres = [dataset[i]['genre'] for i in indices]
+        labels = [dataset[i]['label'] for i in indices]
+
+        return premise_vectors, hypothesis_vectors, labels, genres
 
     def get_minibatch(self, dataset, start_index, end_index):
         indices = range(start_index, end_index)
@@ -110,7 +144,7 @@ class modelClassifier:
         return premise_vectors, hypothesis_vectors, labels, genres
 
 
-    def train(self, train_mnli, dev_mat, dev_mismat):        
+    def train(self, train_mnli, dev_mat, dev_mismat, dev_uw):        
         self.sess = tf.Session()
         self.sess.run(self.init)
 
@@ -167,8 +201,13 @@ class modelClassifier:
                 if self.step % self.display_step_freq == 0:
                     dev_acc_mat, dev_cost_mat = evaluate_classifier(self.classify, dev_mat, self.batch_size)
                     dev_acc_mismat, dev_cost_mismat = evaluate_classifier(self.classify, dev_mismat, self.batch_size)
+
+                    dev_acc_uwre, dev_cost_uwre = evaluate_classifier(self.uwre_classify, dev_uw, self.batch_size)
+
                     mtrain_acc, mtrain_cost = evaluate_classifier(self.classify, train_mnli[0:5000], self.batch_size)
 
+                    logger.Log("Step: %i\t uwre dev acc: %f\t uwre dev cost %f\t" \
+                            %(self.step, dev_acc_uwre, dev_cost_uwre))
                     logger.Log("Step: %i\t Dev-matched acc: %f\t Dev-mismatched acc: %f\t \
                             MultiNLI train acc: %f" %(self.step, dev_acc_mat, 
                                 dev_acc_mismat, mtrain_acc))
@@ -207,30 +246,6 @@ class modelClassifier:
                 self.completed = True
                 break
 
-    def classify(self, examples):
-        # This classifies a list of examples
-        if (test == True) or (self.completed == True):
-            best_path = os.path.join(FIXED_PARAMETERS["ckpt_path"], modname) + ".ckpt_best"
-            self.sess = tf.Session()
-            self.sess.run(self.init)
-            self.saver.restore(self.sess, best_path)
-            logger.Log("Model restored from file: %s" % best_path)
-
-        total_batch = int(len(examples) / self.batch_size)
-        logits = np.empty(2)
-        genres = []
-        for i in range(total_batch):
-            minibatch_premise_vectors, minibatch_hypothesis_vectors, minibatch_labels, minibatch_genres = self.get_minibatch(examples, 
-                                    self.batch_size * i, self.batch_size * (i + 1))
-            feed_dict = {self.model.premise_x: minibatch_premise_vectors, 
-                                self.model.hypothesis_x: minibatch_hypothesis_vectors,
-                                self.model.y: minibatch_labels, 
-                                self.model.keep_rate_ph: 1.0}
-            genres += minibatch_genres
-            logit, cost = self.sess.run([self.model.logits, self.model.total_cost], feed_dict)
-            logits = np.vstack([logits, logit])
-
-        return genres, np.argmax(logits[1:], axis=1), cost
 
     def restore(self, best=True):
         if True:
@@ -241,6 +256,22 @@ class modelClassifier:
         self.sess.run(self.init)
         self.saver.restore(self.sess, path)
         logger.Log("Model restored from file: %s" % path)
+   
+    def uwre_classify(self, examples):
+        # This classifies a list of examples
+        total_batch = int(len(examples) / self.batch_size)
+        logits = np.empty(2)
+        genres = []
+        for i in range(total_batch):
+            minibatch_premise_vectors, minibatch_hypothesis_vectors, minibatch_labels, minibatch_genres = self.get_uwre_minibatch(examples, self.batch_size * i, self.batch_size * (i + 1))
+            feed_dict = {self.model.premise_x: minibatch_premise_vectors,
+                                self.model.hypothesis_x: minibatch_hypothesis_vectors,
+                                self.model.y: minibatch_labels,
+                                self.model.keep_rate_ph: 1.0}
+            genres += minibatch_genres
+            logit, cost = self.sess.run([self.model.logits, self.model.total_cost], feed_dict)
+            logits = np.vstack([logits, logit])
+        return genres, np.argmax(logits[1:], axis=1), cost
 
     def classify(self, examples):
         # This classifies a list of examples
@@ -277,7 +308,7 @@ test = params.train_or_test()
 print("ALL RESULTS ON TEST")
 
 if test == False:
-    classifier.train(training_mnli, dev_matched, dev_mismatched)
+    classifier.train(training_mnli, dev_matched, dev_mismatched, dev_uwre)
     logger.Log("Acc on matched multiNLI dev-set: %s" 
         % (evaluate_classifier(classifier.classify, test_matched, FIXED_PARAMETERS["batch_size"]))[0])
     logger.Log("Acc on mismatched multiNLI dev-set: %s" 
