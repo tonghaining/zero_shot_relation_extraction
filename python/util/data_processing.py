@@ -15,7 +15,15 @@ FIXED_PARAMETERS = params.load_parameters()
 # #    "contradiction": 2,
 #     "hidden": 0
 # }
-
+#NLI_LABEL_MAP = {
+#    "entailment": 0,
+#    "neutral": 1,
+#    "contradiction": 2,
+#}
+#UWRE_LABEL_MAP = {
+#    "entailment": 0,
+#    "neutral": 2,
+#}
 NLI_LABEL_MAP = {
     "entailment": 0,
     "contradiction": 1,

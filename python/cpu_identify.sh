@@ -5,9 +5,9 @@
 # not use !SBATCH -p gpu --gres=gpu:titanx:1
 #We expect that our program should not run langer than 2 hours
 #Note that a program will be killed once it exceeds this time!
-#SBATCH --time=3:00:00
+#SBATCH --time=1:00:00
 
 #your script, in this case: write the hostname and the ids of the chosen gpus.
 #image1
 echo $CUDA_VISIBLE_DEVICES
-PYTHONPATH=$PYTHONPATH:. python pre_train_single.py esim pretrained_triple_baseline --description_num 1 --genre travel --emb_train
+PYTHONPATH=$PYTHONPATH:. python relation_evaluate.py pooling_esim pooling_8_DeNum_test --crossfold 10 --description_num 1 --genre travel --test

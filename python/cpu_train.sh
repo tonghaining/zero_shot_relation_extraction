@@ -1,6 +1,6 @@
 #!/bin/bash
 # normal cpu stuff: allocate cpus, memory
-#SBATCH --ntasks=10 --cpus-per-task=1 --mem=40000M
+#SBATCH --ntasks=10 --cpus-per-task=1 --mem=20000M
 # we run on the gpu partition and we allocate 1 titanx gpu
 # not use !SBATCH -p gpu --gres=gpu:titanx:1
 #We expect that our program should not run langer than 2 hours
@@ -10,4 +10,4 @@
 #your script, in this case: write the hostname and the ids of the chosen gpus.
 #image1
 echo $CUDA_VISIBLE_DEVICES
-PYTHONPATH=$PYTHONPATH:. python train_multi.py pooling_esim pooling_7_DeNum_1 --crossfold 7 --description_num 1 --genre travel --emb_train
+PYTHONPATH=$PYTHONPATH:. python train_multi.py pooling_esim baseline --crossfold 1 --description_num 1 --genre travel --emb_train

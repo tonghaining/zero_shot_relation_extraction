@@ -118,7 +118,7 @@ class MyModel(object):
 
         v2_outs, c4 = blocks.biLSTM(m_b_all[0], dim=self.dim, seq_len=hyp_seq_lengths_mean, name='v2') # hypothesis
         for i in range(self.description_num - 1):
-            with tf.variable_scope(str(i + 1) + "-th hypothesis") as vi_scope:
+            with tf.variable_scope(str(i + 1) + "_th_hypothesis") as vi_scope:
                 v2_outs, c4 = blocks.reader(m_b_all[i+1], hyp_seq_lengths_mean, self.dim, c4, scope=vi_scope)
 
         with tf.variable_scope("conditional_inference_composition-v1") as v1_scope:
@@ -130,10 +130,10 @@ class MyModel(object):
 
         ### Pooling Layer ###
         v_1_sum = tf.reduce_sum(v1_bi, 1) 
-        v_1_ave = tf.div(v_1_sum, tf.expand_dims(tf.cast(hyp_seq_lengths, tf.float32), -1)) 
+        v_1_ave = tf.div(v_1_sum, tf.expand_dims(tf.cast(hyp_seq_lengths_mean, tf.float32), -1)) 
 
         v_2_sum = tf.reduce_sum(v2_bi, 1) 
-        v_2_ave = tf.div(v_2_sum, tf.expand_dims(tf.cast(hyp_seq_lengths, tf.float32), -1)) # (?, 600)
+        v_2_ave = tf.div(v_2_sum, tf.expand_dims(tf.cast(hyp_seq_lengths_mean, tf.float32), -1)) # (?, 600)
 
         v_1_max = tf.reduce_max(v1_bi, 1) # 整列求和 (?, 600)
         v_2_max = tf.reduce_max(v2_bi, 1) # 整列求和 (?, 600)

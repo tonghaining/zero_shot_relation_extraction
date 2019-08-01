@@ -260,7 +260,7 @@ class modelClassifier:
     def uwre_classify(self, examples):
         # This classifies a list of examples
         total_batch = int(len(examples) / self.batch_size)
-        logits = np.empty(2)
+        logits = np.empty(3)
         genres = []
         for i in range(total_batch):
             minibatch_premise_vectors, minibatch_hypothesis_vectors, minibatch_labels, minibatch_genres = self.get_uwre_minibatch(examples, self.batch_size * i, self.batch_size * (i + 1))
@@ -276,7 +276,7 @@ class modelClassifier:
     def classify(self, examples):
         # This classifies a list of examples
         total_batch = int(len(examples) / self.batch_size)
-        logits = np.empty(2)
+        logits = np.empty(3)
         genres = []
         for i in range(total_batch):
             minibatch_premise_vectors, minibatch_hypothesis_vectors, minibatch_labels, minibatch_genres = self.get_minibatch(examples, 

@@ -140,6 +140,33 @@ def extract_relation(classify, eval_set, name):
         w.writerow(['pairID', 'predict_index', 'predict_relation', 'real_index', 'real_relation'])
         for example in predictions:
             w.writerow(example)
+def identify_relation(classify, eval_set, name):
+    """
+    Get comma-separated CSV of predictions.
+    Output file has two columns: pairID, prediction
+    """
+    RELATION_MAP = dict(enumerate(all_relation))
+        
+    predictions = []
+    
+    for i in range(len(eval_set)):
+        instance = eval_set[i]
+        true_label = instance['relation']
+        true_ind = all_relation.index(true_label)
+        
+        hypothesis = classify(instance, relation_scope=[true_label])
+        prediction = RELATION_MAP[hypothesis]
+        pairID = eval_set[i]["pairID"]  
+        predictions.append((pairID, hypothesis, prediction,true_ind, true_label))
+
+        logger.Log("predict for %i -th instance:\n \t predict index: %i,\t predict relation name: %s,\n \t real index: %i,\t real relation name: %s" % (i, hypothesis, prediction,true_ind, true_label))
+
+    with open(name + '_predictions.csv', 'w') as f:
+        w = csv.writer(f, delimiter=',')
+        w.writerow(['pairID', 'predict_index', 'predict_relation', 'real_index', 'real_relation'])
+        for example in predictions:
+            w.writerow(example)
+
 
 classifier = modelClassifier(FIXED_PARAMETERS["seq_length"])
 
@@ -147,12 +174,14 @@ classifier = modelClassifier(FIXED_PARAMETERS["seq_length"])
 Get CSVs of predictions.
 """
 positive_test = []
+negative_test = []
 for instance in test_uwre:
     if instance['label'] == 0:
         positive_test.append(instance)
     else:
-        continue
+        negative_test.append(instance)
 
 logger.Log("Creating CSV of predicitons on matched test set: %s" %(modname+"_predictions.csv"))
+identify_relation(classifier.classify, negative_test, modname)
 extract_relation(classifier.classify, positive_test, modname)
 

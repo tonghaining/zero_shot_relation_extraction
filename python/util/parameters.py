@@ -108,7 +108,7 @@ def load_parameters():
         "keep_rate": args.keep_rate, 
         "description_num": format(args.description_num), # 1,5,10,15
         # "description_num": 4
-        "batch_size": 32, # 16 or 32
+        "batch_size": 16, # 16 or 32
         "learning_rate": args.learning_rate,
         "emb_train": args.emb_train,
         "alpha": args.alpha,
