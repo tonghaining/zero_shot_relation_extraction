@@ -262,6 +262,7 @@ if test == False:
     logger.Log("Acc on UWRE test: %s" %(evaluate_classifier(classifier.classify, test_uwre, FIXED_PARAMETERS["batch_size"]))[0])
     logger.Log("F1-score on UWRE test: %s" %(evaluate_f1(classifier.classify, test_uwre, FIXED_PARAMETERS["batch_size"])))
 else:
-    results = evaluate_uwre_final(classifier.restore, classifier.classify, [test_uwre], FIXED_PARAMETERS["batch_size"])
-    logger.Log("Acc on UWRE test: %s" %(results[0]))
+    prediction_path = os.path.join(FIXED_PARAMETERS["ckpt_path"], FIXED_PARAMETERS['model_name']) 
+    results = evaluate_final(classifier.restore, classifier.classify, [test_uwre], FIXED_PARAMETERS["batch_size"], prediction_path)
+    logger.Log("Acc on UWRE test: %s" %(results[0][0]))
     logger.Log("F1-score on UWRE test: %s" %(results[1]))

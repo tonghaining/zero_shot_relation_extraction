@@ -255,13 +255,18 @@ load the best checkpoint and get accuracy on the test set. Default setting is to
 
 test = params.train_or_test()
 
+# While test-set isn't released, use dev-sets for testing
+test_matched = test_uwre
+test_mismatched = dev_uwre
+
+
 if test == False:
     classifier.train(training_uwre, dev_uwre, test_uwre)
-    logger.Log("Acc on UWRE dev: %s" %(evaluate_classifier(classifier.classify, dev_uwre, FIXED_PARAMETERS["batch_size"]))[0])
-    logger.Log("F1-score on UWRE dev: %s" %(evaluate_f1(classifier.classify, dev_uwre, FIXED_PARAMETERS["batch_size"])))
-    logger.Log("Acc on UWRE test: %s" %(evaluate_classifier(classifier.classify, test_uwre, FIXED_PARAMETERS["batch_size"]))[0])
-    logger.Log("F1-score on UWRE test: %s" %(evaluate_f1(classifier.classify, test_uwre, FIXED_PARAMETERS["batch_size"])))
+    logger.Log("Acc on UWRE dev: %s" %(evaluate_classifier(classifier.classify, test_matched, FIXED_PARAMETERS["batch_size"]))[0])
+    logger.Log("F1-score on UWRE dev: %s" %(evaluate_f1(classifier.classify, test_mismatched, FIXED_PARAMETERS["batch_size"])))
+    logger.Log("Acc on UWRE test: %s" %(evaluate_classifier(classifier.classify, test_matched, FIXED_PARAMETERS["batch_size"]))[0])
+    logger.Log("F1-score on UWRE test: %s" %(evaluate_f1(classifier.classify, test_mismatched, FIXED_PARAMETERS["batch_size"])))
 else:
-    results = evaluate_uwre_final(classifier.restore, classifier.classify, [test_uwre], FIXED_PARAMETERS["batch_size"])
+    results = evaluate_uwre_final(classifier.restore, classifier.classify, [test_matched, test_mismatched], FIXED_PARAMETERS["batch_size"])
     logger.Log("Acc on UWRE test: %s" %(results[0]))
     logger.Log("F1-score on UWRE test: %s" %(results[1]))

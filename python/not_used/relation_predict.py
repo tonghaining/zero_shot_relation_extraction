@@ -112,7 +112,7 @@ class modelClassifier:
              self.model.keep_rate_ph: 1.0}
       logit = self.sess.run(self.model.logits, feed_dict)
 
-      return np.argmax(logit[:,0], axis=0), logit
+      return np.argmax(logit[:,0], axis=0)
 
 def extract_relation(classify, eval_set, name):
     """
@@ -128,17 +128,12 @@ def extract_relation(classify, eval_set, name):
         true_label = instance['relation']
         true_ind = all_relation.index(true_label)
         
-        predict_ind, logit = classify(instance)
-        predict_label = RELATION_MAP[predict_ind]
-        pairID = instance["pairID"]  
-        predictions.append((pairID, predict_ind, predict_label,true_ind, true_label))
-        
-        true_logit = logit[true_ind]
-        seq = np.argsort(-logit[:,0], axis=0)
-        rank = np.where(logit[seq][:,0] == true_logit[0])[0][0]
-        logger.Log("rank of real relation: %s, the logit if it is: %s " % (rank, true_logit))
+        hypothesis = classify(instance)
+        prediction = RELATION_MAP[hypothesis]
+        pairID = eval_set[i]["pairID"]  
+        predictions.append((pairID, hypothesis, prediction,true_ind, true_label))
 
-        logger.Log("predict for %i -th instance:\n \t predict index: %i,\t predict relation name: %s,\n \t real index: %i,\t real relation name: %s" % (i, predict_ind, predict_label,true_ind, true_label))
+        logger.Log("predict for %i -th instance:\n \t predict index: %i,\t predict relation name: %s,\n \t real index: %i,\t real relation name: %s" % (i, hypothesis, prediction,true_ind, true_label))
 
     with open(name + '_predictions.csv', 'w') as f:
         w = csv.writer(f, delimiter=',')
@@ -151,7 +146,13 @@ classifier = modelClassifier(FIXED_PARAMETERS["seq_length"])
 """
 Get CSVs of predictions.
 """
+positive_test = []
+for instance in test_uwre:
+    if instance['label'] == 0:
+        positive_test.append(instance)
+    else:
+        continue
 
 logger.Log("Creating CSV of predicitons on matched test set: %s" %(modname+"_predictions.csv"))
-extract_relation(classifier.classify, test_uwre, modname)
+extract_relation(classifier.classify, positive_test, modname)
 

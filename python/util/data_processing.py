@@ -21,16 +21,16 @@ FIXED_PARAMETERS = params.load_parameters()
 #    "contradiction": 2,
 #}
 #UWRE_LABEL_MAP = {
-#    "entailment": 0,
-#    "neutral": 2,
+#    "ENTAIL": 0,
+#    "NOT_ENTAIL": 2,
 #}
 NLI_LABEL_MAP = {
     "entailment": 0,
     "contradiction": 1,
 }
 UWRE_LABEL_MAP = {
-    "entailment": 0,
-    "neutral": 1,
+    "ENTAIL": 0,
+    "NOT_ENTAIL": 1,
 }
 
 PADDING = "<PAD>"

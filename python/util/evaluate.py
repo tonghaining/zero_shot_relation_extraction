@@ -125,7 +125,7 @@ def evaluate_uwre_final(restore, classifier, eval_sets, batch_size):
         f1 = f1_score(y_true, y_predict, labels=[0,1], average='macro')
     return percentages, f1
 
-def evaluate_final(restore, classifier, eval_sets, batch_size):
+def evaluate_final(restore, classifier, eval_sets, batch_size, name):
     """
     Function to get percentage accuracy of the model, evaluated on a set of chosen datasets.
     
@@ -137,34 +137,38 @@ def evaluate_final(restore, classifier, eval_sets, batch_size):
     restore(best=True)
     percentages = []
     length_results = []
+
+    predictions = []
+
     for eval_set in eval_sets:
-        bylength_prem = {}
-        bylength_hyp = {}
         genres, hypotheses, cost = classifier(eval_set)
         correct = 0
         cost = cost / batch_size
         full_batch = int(len(eval_set) / batch_size) * batch_size
+        y_true = np.zeros((full_batch))
+        y_predict = np.zeros((full_batch))
 
         for i in range(full_batch):
             hypothesis = hypotheses[i]
+            y_predict[i] = hypothesis
+            y_true[i] = eval_set[i]['label']
             
-            length_1 = len(eval_set[i]['sentence1'].split())
-            length_2 = len(eval_set[i]['sentence2'].split())
-            if length_1 not in bylength_prem.keys():
-                bylength_prem[length_1] = [0,0]
-            if length_2 not in bylength_hyp.keys():
-                bylength_hyp[length_2] = [0,0]
-
-            bylength_prem[length_1][1] += 1
-            bylength_hyp[length_2][1] += 1
-
             if hypothesis == eval_set[i]['label']:
                 correct += 1  
-                bylength_prem[length_1][0] += 1
-                bylength_hyp[length_2][0] += 1    
+
+            prediction = (eval_set[i]["pairID"], eval_set[i]["relation"], int(y_true[i]), int(hypothesis))
+            predictions.append(prediction)
+
         percentages.append(correct / float(len(eval_set)))  
-        length_results.append((bylength_prem, bylength_hyp))
-    return percentages, length_results
+        f1 = f1_score(y_true, y_predict, labels=[0,1], average='macro')
+
+    with open(name + '_predictions.csv', 'w') as f:
+        w = csv.writer(f, delimiter=',')
+        w.writerow(['pairID', 'relation', 'true_label', 'predict_label'])
+        for example in predictions:
+            w.writerow(example)
+
+    return percentages, f1
 
 
 def predictions_kaggle(classifier, eval_set, batch_size, name):
