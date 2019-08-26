@@ -1,7 +1,3 @@
-"""
-Training script to train a model on only SNLI data. MultiNLI data is loaded into the embeddings enabling us to test the model on MultiNLI data.
-"""
-
 import tensorflow as tf
 import os
 import importlib
@@ -26,7 +22,6 @@ module = importlib.import_module(".".join(['models', model]))
 MyModel = getattr(module, 'MyModel')
 
 relation_description_path = FIXED_PARAMETERS['relation_description']
-# description_num = int(FIXED_PARAMETERS["description_num"])
 
 # Logging parameter settings at each launch of training script
 # This will help ensure nothing goes awry in reloading a model and we consistenyl use the same hyperparameter settings.
@@ -173,16 +168,11 @@ class modelClassifier:
                 _, c = self.sess.run([self.optimizer, self.model.total_cost], feed_dict)
 
 
-                # Since a single epoch can take a  ages for larger models (ESIM),
-                #  we'll print accuracy every 50 steps
                 if self.step % self.display_step_freq == 0:
-                    # test_f1 = evaluate_f1(self.classify, test_uwre, self.batch_size)
-                    # test_acc, test_cost = evaluate_classifier(self.classify, test_uwre, self.batch_size)
                     dev_f1 = evaluate_f1(self.classify, dev_uwre, self.batch_size)
                     dev_acc_uwre, dev_cost_uwre = evaluate_classifier(self.classify, dev_uwre, self.batch_size)
                     strain_acc, strain_cost = evaluate_classifier(self.classify, train_uwre[0:5000], self.batch_size)
 
-                    # logger.Log("Step: %i\t Test f1-score: %f\t Dev f1-score: %f" %(self.step, test_f1, dev_f1))
                     logger.Log("Step: %i\t Dev f1-score: %f" %(self.step, dev_f1))
                     logger.Log("Step: %i\t Dev-UWRE acc: %f\t UWRE train acc: %f" %(self.step, dev_acc_uwre, strain_acc))
                     logger.Log("Step: %i\t Dev-UWRE cost: %f\t UWRE train cost: %f" %(self.step, dev_cost_uwre, strain_cost))

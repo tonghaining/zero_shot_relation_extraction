@@ -1,9 +1,3 @@
-"""
-Training script to train a model on MultiNLI and, optionally, on SNLI data as well.
-The "alpha" hyperparamaters set in paramaters.py determines if SNLI data is used in training. 
-If alpha = 0, no SNLI data is used in training. If alpha > 0, then down-sampled SNLI data is used in training. 
-"""
-
 import tensorflow as tf
 import os
 import importlib
@@ -171,8 +165,6 @@ class modelClassifier:
             self.saver.restore(self.sess, ckpt_file)
             logger.Log("Model restored from file: %s" % ckpt_file)
 
-        # Combine MultiNLI and SNLI data. Alpha has a default value of 0, if we want to use SNLI data, it must be passed as an argument.
-
         ### Training cycle
         logger.Log("Training...")
 
@@ -302,9 +294,6 @@ load the best checkpoint and get accuracy on the test set. Default setting is to
 
 test = params.train_or_test()
 
-# While test-set isn't released, use dev-sets for testing
-#test_matched = dev_matched
-#test_mismatched = dev_mismatched
 print("ALL RESULTS ON TEST")
 
 if test == False:
@@ -319,13 +308,3 @@ else:
     logger.Log("Acc on multiNLI matched dev-set: %s" %(results[0]))
     logger.Log("Acc on multiNLI mismatched dev-set: %s" %(results[1]))
     
-    #dumppath = os.path.join("./", modname) + "_length.p"
-    #pickle.dump(bylength, open(dumppath, "wb"))
-
-    # Results by genre,
-    logger.Log("Acc on matched genre dev-sets: %s" 
-        % (evaluate_classifier_genre(classifier.classify, test_matched, FIXED_PARAMETERS["batch_size"])[0]))
-    logger.Log("Acc on mismatched genres dev-sets: %s" 
-        % (evaluate_classifier_genre(classifier.classify, test_mismatched, FIXED_PARAMETERS["batch_size"])[0]))
-
-

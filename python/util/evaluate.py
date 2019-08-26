@@ -79,7 +79,7 @@ def evaluate_classifier_bylength(classifier, eval_set, batch_size):
 
 def evaluate_f1(classifier, eval_set, batch_size):
     """
-    Function to get accuracy and cost of the model, evaluated on a chosen dataset.
+    Function to get f1 score of the model, evaluated on a chosen dataset.
     classifier: the model's classfier, it should return genres, logit values, and cost for a given minibatch of the evaluation dataset
     eval_set: the chosen evaluation set, for eg. the dev-set
     batch_size: the size of minibatches.
@@ -96,7 +96,7 @@ def evaluate_f1(classifier, eval_set, batch_size):
 
 def evaluate_uwre_final(restore, classifier, eval_sets, batch_size):
     """
-    Function to get percentage accuracy of the model, evaluated on a set of chosen datasets.
+    Function to get percentage accuracy and f1 score of the model, evaluated on a set of chosen datasets.
     
     restore: a function to restore a stored checkpoint
     classifier: the model's classfier, it should return genres, logit values, and cost for a given minibatch of the evaluation dataset
@@ -169,32 +169,3 @@ def evaluate_final(restore, classifier, eval_sets, batch_size, name):
             w.writerow(example)
 
     return percentages, f1
-
-
-def predictions_kaggle(classifier, eval_set, batch_size, name):
-    """
-    Get comma-separated CSV of predictions.
-    Output file has two columns: pairID, prediction
-    """
-    INVERSE_MAP = {
-    0: "entailment",
-    1: "contradiction"
-    # 2: "contradiction"
-    }
-
-    hypotheses = classifier(eval_set)
-    predictions = []
-    
-    for i in range(len(eval_set)):
-        hypothesis = hypotheses[i]
-        prediction = INVERSE_MAP[hypothesis]
-        pairID = eval_set[i]["pairID"]  
-        predictions.append((pairID, prediction))
-
-    #predictions = sorted(predictions, key=lambda x: int(x[0]))
-
-    with open(name + '_predictions.csv', 'w') as f:
-        w = csv.writer(f, delimiter=',')
-        w.writerow(['pairID', 'gold_label'])
-        for example in predictions:
-            w.writerow(example)

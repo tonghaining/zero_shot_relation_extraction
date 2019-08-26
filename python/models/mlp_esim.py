@@ -1,7 +1,6 @@
 import tensorflow as tf
 from util import blocks
 
-# models/esim_modify
 class MyModel(object):
     def __init__(self, seq_length, emb_dim, hidden_dim, embeddings, emb_train, description_num):
         ## Define hyperparameters
@@ -87,12 +86,12 @@ class MyModel(object):
             betas.append(beta_j)
 
         # Make attention-weighted sentence representations into one tensor,
-        premise_attns = tf.stack(premise_attn, axis=1) # (?, 50, 600)
-        hypothesis_attns = tf.stack(hypothesis_attn, axis=1) # (?, 50, 600)
+        premise_attns = tf.stack(premise_attn, axis=1)
+        hypothesis_attns = tf.stack(hypothesis_attn, axis=1)
 
         # For making attention plots,
-        self.alpha_s = tf.stack(alphas, axis=2) # (?, 50, 50, 1)
-        self.beta_s = tf.stack(betas, axis=2) # (?, 50, 50, 1)
+        self.alpha_s = tf.stack(alphas, axis=2)
+        self.beta_s = tf.stack(betas, axis=2)
 
 
         ### Subcomponent Inference ###
@@ -107,24 +106,24 @@ class MyModel(object):
 
         ### Inference Composition ###
 
-        v2_outs, c4 = blocks.biLSTM(m_b, dim=self.dim, seq_len=hyp_seq_lengths, name='v2') # hypothesis
+        v2_outs, c4 = blocks.biLSTM(m_b, dim=self.dim, seq_len=hyp_seq_lengths, name='v2')
         # same to hypothesis premise part, calculate v1 based on v2 during Inference Composition
         with tf.variable_scope("conditional_inference_composition-v1") as v1_scope:
-            v1_outs, c3 = blocks.reader(m_a, prem_seq_lengths, self.dim, c4, scope=v1_scope) # premise
+            v1_outs, c3 = blocks.reader(m_a, prem_seq_lengths, self.dim, c4, scope=v1_scope)
 
-        v1_bi = tf.concat(v1_outs, axis=2) # (?, 50, 600)
-        v2_bi = tf.concat(v2_outs, axis=2) # (?, 50, 600)
+        v1_bi = tf.concat(v1_outs, axis=2)
+        v2_bi = tf.concat(v2_outs, axis=2)
 
 
         ### Pooling Layer ###
-        v_1_sum = tf.reduce_sum(v1_bi, 1) # 整列求和 (?, 600) 把每句话的50个单词省略了?
-        v_1_ave = tf.div(v_1_sum, tf.expand_dims(tf.cast(hyp_seq_lengths, tf.float32), -1)) # (?, 600)
+        v_1_sum = tf.reduce_sum(v1_bi, 1)
+        v_1_ave = tf.div(v_1_sum, tf.expand_dims(tf.cast(hyp_seq_lengths, tf.float32), -1))
 
-        v_2_sum = tf.reduce_sum(v2_bi, 1) # 整列求和 (?, 600)
-        v_2_ave = tf.div(v_2_sum, tf.expand_dims(tf.cast(hyp_seq_lengths, tf.float32), -1)) # (?, 600)
+        v_2_sum = tf.reduce_sum(v2_bi, 1)
+        v_2_ave = tf.div(v_2_sum, tf.expand_dims(tf.cast(hyp_seq_lengths, tf.float32), -1))
 
-        v_1_max = tf.reduce_max(v1_bi, 1) # 整列求和 (?, 600)
-        v_2_max = tf.reduce_max(v2_bi, 1) # 整列求和 (?, 600)
+        v_1_max = tf.reduce_max(v1_bi, 1)
+        v_2_max = tf.reduce_max(v2_bi, 1)
 
 
         v = tf.concat([v_1_ave, v_2_ave, v_1_max, v_2_max], 1)
@@ -142,4 +141,4 @@ class MyModel(object):
 
 
         # Define the cost function
-        self.total_cost = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y, logits=self.logits)) # 一个数字
+        self.total_cost = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y, logits=self.logits))

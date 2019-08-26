@@ -1,9 +1,3 @@
-"""
-Training script to train a model on MultiNLI and, optionally, on SNLI data as well.
-The "alpha" hyperparamaters set in paramaters.py determines if SNLI data is used in training. 
-If alpha = 0, no SNLI data is used in training. If alpha > 0, then down-sampled SNLI data is used in training. 
-"""
-
 import tensorflow as tf
 import os
 import importlib
@@ -196,8 +190,6 @@ class modelClassifier:
                                 self.model.keep_rate_ph: self.keep_rate}
                 _, c = self.sess.run([self.optimizer, self.model.total_cost], feed_dict)
 
-                # Since a single epoch can take a  ages for larger models (ESIM),
-                # we'll print  accuracy every 50 steps
                 if self.step % self.display_step_freq == 0:
                     dev_acc_mat, dev_cost_mat = evaluate_classifier(self.classify, dev_mat, self.batch_size)
                     dev_acc_mismat, dev_cost_mismat = evaluate_classifier(self.classify, dev_mismat, self.batch_size)
@@ -302,9 +294,6 @@ load the best checkpoint and get accuracy on the test set. Default setting is to
 
 test = params.train_or_test()
 
-# While test-set isn't released, use dev-sets for testing
-#test_matched = dev_matched
-#test_mismatched = dev_mismatched
 print("ALL RESULTS ON TEST")
 
 if test == False:
@@ -318,14 +307,4 @@ else:
         [test_matched, test_mismatched, ], FIXED_PARAMETERS["batch_size"])
     logger.Log("Acc on multiNLI matched dev-set: %s" %(results[0]))
     logger.Log("Acc on multiNLI mismatched dev-set: %s" %(results[1]))
-    
-    #dumppath = os.path.join("./", modname) + "_length.p"
-    #pickle.dump(bylength, open(dumppath, "wb"))
-
-    # Results by genre,
-    logger.Log("Acc on matched genre dev-sets: %s" 
-        % (evaluate_classifier_genre(classifier.classify, test_matched, FIXED_PARAMETERS["batch_size"])[0]))
-    logger.Log("Acc on mismatched genres dev-sets: %s" 
-        % (evaluate_classifier_genre(classifier.classify, test_mismatched, FIXED_PARAMETERS["batch_size"])[0]))
-
 

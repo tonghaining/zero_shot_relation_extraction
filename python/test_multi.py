@@ -1,7 +1,3 @@
-"""
-Training script to train a model on only SNLI data. MultiNLI data is loaded into the embeddings enabling us to test the model on MultiNLI data.
-"""
-
 import tensorflow as tf
 import os
 import importlib
@@ -26,10 +22,6 @@ module = importlib.import_module(".".join(['models', model]))
 MyModel = getattr(module, 'MyModel')
 
 relation_description_path = FIXED_PARAMETERS['relation_description']
-# description_num = int(FIXED_PARAMETERS["description_num"])
-
-# Logging parameter settings at each launch of training script
-# This will help ensure nothing goes awry in reloading a model and we consistenyl use the same hyperparameter settings.
 logger.Log("FIXED_PARAMETERS\n %s" % FIXED_PARAMETERS)
 logger.Log("Loading data")
 
@@ -41,7 +33,6 @@ with open(relation_description_path, 'r') as file:
     relation_descriptions = json.load(file)
 
 if 'temp.jsonl' in FIXED_PARAMETERS["test_matched"]:
-    # Removing temporary empty file that was created in parameters.py
     os.remove(FIXED_PARAMETERS["test_matched"])
     logger.Log("Created and removed empty file called temp.jsonl since test set is not available.")
 

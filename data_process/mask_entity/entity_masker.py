@@ -79,7 +79,7 @@ def mask_file(in_data, out_data):
                     current_sentence = content[3]
                     current_sentence = current_sentence.replace(current_subject, 'SUBJECT_ENTITY').replace(current_object, 'OBJECT_ENTITY')
                     json_container.append({
-                    'gold_label': 'entailment',
+                    'gold_label': 'ENTAIL',
                     'relation': relation,
                     'sentence': current_sentence,
                     'pairID': current_subject + str(counter)
@@ -91,7 +91,7 @@ def mask_file(in_data, out_data):
                     random_obj = ner_random_pick(current_sentence, current_subject)
                     current_sentence = current_sentence.replace(current_subject, 'SUBJECT_ENTITY').replace(random_obj, 'OBJECT_ENTITY')
                     json_container.append({
-                    'gold_label': 'neutral',
+                    'gold_label': 'NOT_ENTAIL',
                     'relation': relation,
                     'sentence': current_sentence,
                     'pairID': current_subject + str(counter)

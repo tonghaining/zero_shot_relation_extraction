@@ -136,9 +136,6 @@ def extract_relation(classify, eval_set, name):
         seq = np.argsort(-logit[:,0], axis=0)
         rank = np.where(logit[seq][:,0] == true_logit[0])[0][0]
         predictions.append((pairID, predict_ind, predict_label,true_ind, true_label, rank))
-        # logger.Log("rank of real relation: %s, the logit if it is: %s " % (rank, true_logit))
-
-        # logger.Log("predict for %i -th instance:\n \t predict index: %i,\t predict relation name: %s,\n \t real index: %i,\t real relation name: %s" % (i, predict_ind, predict_label,true_ind, true_label))
 
     with open(name + '_ranking_predictions.csv', 'w') as f:
         w = csv.writer(f, delimiter=',')

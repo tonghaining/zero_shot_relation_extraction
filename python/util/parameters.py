@@ -3,7 +3,7 @@ The hyperparameters for a model are defined here. Arguments like the type of mod
 All paramters and arguments can be changed by calling flags in the command line.
 
 Required arguements are,
-model_type: which model you wish to train with. Valid model types: cbow, bilstm, and esim.
+model_type: which model you wish to train with. Valid model types: esim, connect_esim, inference_esim, pooling_esim and mlp_esim.
 model_name: the name assigned to the model being trained, this will prefix the name of the logs and checkpoint files.
 """
 
@@ -14,7 +14,7 @@ import json
 
 parser = argparse.ArgumentParser()
 
-models = ['esim', 'inference_esim', 'mlp_esim', 'pooling_esim', 'connect_esim']
+models = ['esim', 'connect_esim', 'inference_esim', 'pooling_esim', 'mlp_esim']
 def types(s):
     options = [mod for mod in models if s in models]
     if len(options) == 1:
@@ -51,21 +51,6 @@ parser.add_argument("--test", action='store_true', help="Call if you want to onl
 
 args = parser.parse_args()
 
-"""
-# Check if test sets are available. If not, create an empty file.
-test_matched = "{}/multinli_0.9/multinli_0.9_test_matched_unlabeled.jsonl".format(args.datapath)
-
-if os.path.isfile(test_matched):
-    test_matched = "{}/multinli_0.9/multinli_0.9_test_matched_unlabeled.jsonl".format(args.datapath)
-    test_mismatched = "{}/multinli_0.9/multinli_0.9_test_matched_unlabeled.jsonl".format(args.datapath)
-    test_path = "{}/multinli_0.9/".format(args.datapath)
-else:
-    test_path = "{}/multinli_0.9/".format(args.datapath)
-    temp_file = os.path.join(test_path, "temp.jsonl")
-    io.open(temp_file, "wb")
-    test_matched = temp_file
-    test_mismatched = temp_file
-"""
 # Check if test sets are available. If not, create an empty file.
 test_matched = "{}/multinli_0.9/multinli_0.9_test_matched.jsonl".format(args.datapath)
 
@@ -107,7 +92,6 @@ def load_parameters():
         "seq_length": args.seq_length,
         "keep_rate": args.keep_rate, 
         "description_num": format(args.description_num), # 1,5,10,15
-        # "description_num": 4
         "batch_size": 16, # 16 or 32
         "learning_rate": args.learning_rate,
         "emb_train": args.emb_train,

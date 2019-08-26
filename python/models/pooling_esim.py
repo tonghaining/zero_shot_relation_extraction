@@ -1,7 +1,6 @@
 import tensorflow as tf
 from util import blocks
 
-# models/esim_modify
 class MyModel(object):
     def __init__(self, seq_length, emb_dim, hidden_dim, embeddings, emb_train, description_num):
         ## Define hyperparameters
@@ -87,12 +86,12 @@ class MyModel(object):
             betas.append(beta_j)
 
         # Make attention-weighted sentence representations into one tensor,
-        premise_attns = tf.stack(premise_attn, axis=1) # (?, 50, 600)
-        hypothesis_attns = tf.stack(hypothesis_attn, axis=1) # (?, 50, 600)
+        premise_attns = tf.stack(premise_attn, axis=1)
+        hypothesis_attns = tf.stack(hypothesis_attn, axis=1)
 
         # For making attention plots, 
-        self.alpha_s = tf.stack(alphas, axis=2) # (?, 50, 50, 1)
-        self.beta_s = tf.stack(betas, axis=2) # (?, 50, 50, 1)
+        self.alpha_s = tf.stack(alphas, axis=2)
+        self.beta_s = tf.stack(betas, axis=2)
 
 
         ### Subcomponent Inference ###
@@ -102,15 +101,15 @@ class MyModel(object):
         hyp_diff = tf.subtract(hypothesis_bi, hypothesis_attns)
         hyp_mul = tf.multiply(hypothesis_bi, hypothesis_attns)
 
-        m_a = tf.concat([premise_bi, premise_attns, prem_diff, prem_mul], 2) # (?,50, 2400)
-        m_b = tf.concat([hypothesis_bi, hypothesis_attns, hyp_diff, hyp_mul], 2) # (?,50, 2400)
+        m_a = tf.concat([premise_bi, premise_attns, prem_diff, prem_mul], 2)
+        m_b = tf.concat([hypothesis_bi, hypothesis_attns, hyp_diff, hyp_mul], 2)
 
 
         ### Inference Composition ###
 
-        v2_outs, c4 = blocks.biLSTM(m_b, dim=self.dim, seq_len=hyp_seq_lengths, name='v2') # hypothesis
+        v2_outs, c4 = blocks.biLSTM(m_b, dim=self.dim, seq_len=hyp_seq_lengths, name='v2')
         with tf.variable_scope("conditional_inference_composition-v1") as v1_scope:
-            v1_outs, c3 = blocks.reader(m_a, prem_seq_lengths, self.dim, c4, scope=v1_scope) # premise
+            v1_outs, c3 = blocks.reader(m_a, prem_seq_lengths, self.dim, c4, scope=v1_scope)
 
         v1_bi = tf.concat(v1_outs, axis=2) 
         v2_bi = tf.concat(v2_outs, axis=2) 
