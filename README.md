@@ -25,7 +25,7 @@ The models can be pretrained with MultiNLI or train with UW-RE. Each setting has
 	- ['Pre_Train.ipynb'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/Pre_Train.ipynb)
 
 - To train a model only on UW-RE data.
-	- [`train_mnli.py`](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/train_mnli.py)
+	- [`train_mnli.py`](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/test_multi.py)
 
 - To train the baseline model CIM with single description utilized.
 	- [`train_single.py`](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/train_single.py)
@@ -72,7 +72,7 @@ You can run the following bash directly, or following the python command inside 
 To test a trained model, simply add the `test` flag to the command used for training. The best checkpoint will be loaded and used to evaluate the model's performance on the UW-RE.
 
 - ['test.sh'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/test.sh) would run ['test_multi.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/test_multi.py). It would also generate a CSV file with the true label and predicted label.
-- ['test_ranking.sh'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/test_ranking.sh) would run ['relation_preict.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/relation_preict.py). It would selecting the relation with highest entailment score among all the 120 relations.
+- ['test_ranking.sh'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/test_ranking.sh) would run ['relation_preict.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/relation_predict.py). It would selecting the relation with highest entailment score among all the 120 relations.
 
 ### Checkpoints
 
