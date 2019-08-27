@@ -8,11 +8,11 @@ The [MultiNLI](https://www.nyu.edu/projects/bowman/multinli/) and [UW-RE](http:/
 ## Models
 I proposed four neural network models based on the Conditional Inference Model (CIM). They could take multiple descriptions to pair with instance sentences. The information would be merged in different layers in the four models.
 
-- Conditional Inference Model (CIM) : I convert the ESIM to CIM by replace the BiLSTM with cBiLSTM. Main code for this model is in ['esim.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/models/esim.py)
-- Connected-Merging CIM (CCIM) : in this model, the knowledge of descriptions would be allocated by connecting the cell states of BiLSTM in the Inference Composition layer. Main code for this model is in ['mlp_esim.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/models/mlp_esim.py)
-- Inference-Merging CIM (ICIM) : in this model, the merging work takes place in the Local inference Layer. Main code for this model is in ['inference_esim.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/models/inference_esim.py)
-- Pooling-Merging CIM (PCIM) : in this model, descriptions are merged in the Pooling Layer. Main code for this model is in ['pooling_esim.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/models/pooling_esim.py)
-- MLP-Merging CIM (MCIM) : in this model, descriptions are merged by averaging in the MLP Layer. Main code for this model is in ['mlp_esim.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/models/mlp_esim.py)
+- Conditional Inference Model (CIM) : I convert the ESIM to CIM by replace the BiLSTM with cBiLSTM. Main code for this model is in ['cim.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/models/cim.py)
+- Connected-Merging CIM (CCIM) : in this model, the knowledge of descriptions would be allocated by connecting the cell states of BiLSTM in the Inference Composition layer. Main code for this model is in ['mcim.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/models/mcim.py)
+- Inference-Merging CIM (ICIM) : in this model, the merging work takes place in the Local inference Layer. Main code for this model is in ['icim.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/models/icim.py)
+- Pooling-Merging CIM (PCIM) : in this model, descriptions are merged in the Pooling Layer. Main code for this model is in ['pcim.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/models/pcim.py)
+- MLP-Merging CIM (MCIM) : in this model, descriptions are merged by averaging in the MLP Layer. Main code for this model is in ['mcim.py'](https://github.com/tonghaining/zero_shot_relation_extraction/blob/master/python/models/mcim.py)
 
 ## Training and Testing
 
@@ -36,7 +36,7 @@ To start training with any of the training scripts, there are a couple of requir
 
 Required flags,
 
-- `model_type`: there are three model types in this repository, `esim`, `connect_esim`,`inference_esim`, `pooling_esim`, and `mlp_esim`. You must state which model you want to use.
+- `model_type`: there are three model types in this repository, `cim`, `ccim`,`icim`, `pcim`, and `mcim`. You must state which model you want to use.
 - `model_name`: this is your experiment name. This name will be used the prefix the log and checkpoint files.
 
 Optional flags,

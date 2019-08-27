@@ -8,8 +8,8 @@
 
 #your script, in this case: write the hostname and the ids of the chosen gpus.
 echo $CUDA_VISIBLE_DEVICES
-PYTHONPATH=$PYTHONPATH:. python relation_predict.py connect_esim connect_3_DeNum_5 --description_num 5 --crossfold 3 --genre travel --test
-PYTHONPATH=$PYTHONPATH:. python relation_predict.py inference_esim inference_3_DeNum_5 --description_num 5 --crossfold 3 --genre travel --test
-PYTHONPATH=$PYTHONPATH:. python relation_predict.py pooling_esim pooling_3_DeNum_5 --description_num 5 --crossfold 3 --genre travel --test
-PYTHONPATH=$PYTHONPATH:. python relation_predict.py mlp_esim mlp_3_DeNum_5 --description_num 5 --crossfold 3 --genre travel --test
+PYTHONPATH=$PYTHONPATH:. python relation_predict.py ccim connect_3_DeNum_5 --description_num 5 --crossfold 3 --genre travel --test
+PYTHONPATH=$PYTHONPATH:. python relation_predict.py icim inference_3_DeNum_5 --description_num 5 --crossfold 3 --genre travel --test
+PYTHONPATH=$PYTHONPATH:. python relation_predict.py pcim pooling_3_DeNum_5 --description_num 5 --crossfold 3 --genre travel --test
+PYTHONPATH=$PYTHONPATH:. python relation_predict.py mcim mlp_3_DeNum_5 --description_num 5 --crossfold 3 --genre travel --test
 
