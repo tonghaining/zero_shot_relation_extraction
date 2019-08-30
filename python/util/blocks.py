@@ -1,11 +1,3 @@
-"""
-
-Functions and components that can be slotted into tensorflow models.
-
-TODO: Write functions for various types of attention.
-
-"""
-
 import tensorflow as tf
 
 
