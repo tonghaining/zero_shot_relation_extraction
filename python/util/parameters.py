@@ -21,7 +21,6 @@ def types(s):
         return options[0]
     return s
 
-# Valid genres to train on. 
 genres = ['travel', 'fiction', 'slate', 'telephone', 'government']
 def subtypes(s):
     options = [mod for mod in genres if s in genres]
@@ -92,7 +91,7 @@ def load_parameters():
         "seq_length": args.seq_length,
         "keep_rate": args.keep_rate, 
         "description_num": format(args.description_num), # 1,5,10,15
-        "batch_size": 16, # 16 or 32
+        "batch_size": 32, # 16 or 32
         "learning_rate": args.learning_rate,
         "emb_train": args.emb_train,
         "alpha": args.alpha,
